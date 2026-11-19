@@ -1,4 +1,4 @@
-# Startprompt · seofessionals three.js Demo 6
+# Startprompt · three.js Demo 6
 
 Der Prompt, mit dem ich anfangen würde, um diese Demo nachzubauen. Er liefert nicht genau diese Seite, sondern eine erste Version der Idee. Danach beginnt die eigentliche Arbeit.
 
