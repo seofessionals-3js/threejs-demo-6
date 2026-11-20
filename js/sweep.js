@@ -1,6 +1,6 @@
 // The turn: one scene holds both worlds, the card model at night and the house in daylight, built from the same parts.
 // A front expands from the lamp's bulb. Card draws only outside it, the real house only inside it,
-// and a warm line runs where the front crosses a surface. So the change travels through the world, not across the screen.
+// and a red line runs where the front crosses a surface. So the change travels through the world, not across the screen.
 //
 // Each side also keeps its own light: the card is lit by the lamp, the moon and a dim fill, the house by the sun,
 // the daylight sky and the lamps inside. Three.js lights are global, so every lit material scales each light's
@@ -12,9 +12,9 @@ import * as THREE from 'three';
 export const SWEEP = {
   C: { value: new THREE.Vector3() },   // centre: the lamp's bulb
   R: { value: 0 },                     // radius of the front
-  W: { value: 0.20 },                  // width of the warm filament line
+  W: { value: 0.20 },                  // width of the red line
   glow: { value: 0 },
-  col: { value: new THREE.Color(2.15, 0.82, 0.24) },
+  col: { value: new THREE.Color(1.55, 0.09, 0.13) },
 };
 const SIDE = {
   card: { dirK: { value: [0, 1, 1] }, hemiK: { value: [1, 0] }, spotK: { value: 1 }, pointK: { value: 0 } },
@@ -39,7 +39,7 @@ uniform float uHemiK[ NUM_HEMI_LIGHTS ];
 #endif
 `;
 // Distances beyond 66 units (outside the house and immediate garden) are compressed so the studio walls,
-// giant desk props and far hillside sweep in one continuous wave right after the house without leaving a black wedge.
+// giant desk props and the far land sweep in one continuous wave right after the house without leaving a black wedge.
 const MAP_D = `
 float rawSweepD = distance( vSweepW, uSweepC );
 float compSweepD = rawSweepD < 66.0 ? rawSweepD : 66.0 + ( rawSweepD - 66.0 ) * 0.22;
@@ -52,7 +52,7 @@ ${side === 'card' ? 'if ( uSeamK > 0.0 && sweepD < uSweepR ) discard;' : 'if ( s
 float dSeam = abs( sweepD - uSweepR );
 float coreLine = exp( -pow( dSeam / uSweepW, 2.0 ) );
 float echoLine = 0.36 * exp( -pow( ( dSeam - uSweepW * 2.6 ) / ( uSweepW * 0.75 ), 2.0 ) );
-float softBand = 0.28 * exp( -pow( dSeam / ( uSweepW * 4.5 ), 2.0 ) );
+float softBand = 0.16 * exp( -pow( dSeam / ( uSweepW * 4.5 ), 2.0 ) );
 float gridEnv = exp( -pow( dSeam / ( uSweepW * 11.5 ), 1.6 ) );
 float cY = 1.0 - smoothstep( 0.0, 0.06, abs( fract( vSweepW.y * 2.0 + 0.5 ) - 0.5 ) );
 float cX = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.x + 0.5 ) - 0.5 ) );
@@ -81,7 +81,8 @@ export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0 } = {}) {
       .replace('#include <common>', '#include <common>\n' + PARS)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n' + CUT(side))
       .replace('#include <lights_fragment_begin>', LIGHTS)
-      .replace('#include <opaque_fragment>', 'outgoingLight += uSweepCol * sweepSeam;\n#include <opaque_fragment>');
+      // the line is laid over the surface, not added to it: on white card an added red would only turn pink
+      .replace('#include <opaque_fragment>', 'float sweepK = clamp( sweepSeam, 0.0, 1.0 );\noutgoingLight = mix( outgoingLight, uSweepCol * ( 0.5 + 0.5 * sweepK ), sweepK * 0.92 );\n#include <opaque_fragment>');
   };
   const prevK = prevKey && prevKey !== THREE.Material.prototype.customProgramCacheKey ? prevKey.bind(mat) : () => '';
   mat.customProgramCacheKey = () => prevK() + '|sweep-' + side;

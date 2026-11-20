@@ -7,7 +7,7 @@ Ersetzen Sie die Teile in `[eckigen Klammern]` durch Ihr eigenes Thema.
 ```text
 Ich möchte eine scrollgesteuerte Landingpage bauen für [ein Architekturbüro, Ihr Thema].
 
-Die Idee: Ein weißes Arbeitsmodell aus Karton von [einem Haus am Hang] steht nachts auf dem
+Die Idee: Ein weißes Arbeitsmodell aus Karton von [einem zweigeschossigen Haus mit Garten] steht nachts auf dem
 Tisch eines Architekten. Kartonwände, Fenster aus Acetatfolie, Höhenschichten aus Graupappe für
 das Gelände, Bäume aus Karton und eine winzige Maßstabsfigur. Eine Schreibtischlampe beleuchtet
 es, und Zeichnungen desselben Hauses hängen an der dunklen Wand dahinter.
@@ -20,13 +20,13 @@ Der Scrollablauf, der Reihe nach:
 3. Das Eintauchen. Die Kamera kommt auf die Augenhöhe der Maßstabsfigur herunter. Jede
    Halbierung der Höhe kostet gleich viel Scroll. Eine Anzeige zeigt die Höhe in Zentimetern
    auf dem Tisch und in Metern im Haus.
-4. Der Übergang. Eine Kugel wächst aus der Glühbirne der Lampe. In ihr wird der Karton zu Beton,
-   Eiche, Glas und Gras, mit einer dünnen Scan-Linie in Bernstein, wo sie eine Fläche schneidet.
+4. Der Übergang. Eine Kugel wächst aus der Glühbirne der Lampe. In ihr wird der Karton zu Putz,
+   Eiche, Glas und Gras, mit einer dünnen roten Scan-Linie, wo sie eine Fläche schneidet.
    Die Kamera nimmt den Platz der Figur ein, und das Licht der Lampe wird zu einer tiefen Sonne
    aus derselben Richtung. Die Kugel stoppt, sobald Haus und Gelände fertig sind, und das dunkle
    Atelier bleibt drumherum. Kein Himmel.
-5. Der Rundgang: durch die Schiebetür in [den Wohnraum], hinauf in [das Arbeitszimmer], wo
-   dasselbe Kartonmodell auf dem Tisch steht.
+5. Der Rundgang: durch die große Glastür mit zwei Schiebeflügeln in [den Wohnraum], hinauf in
+   [das Arbeitszimmer auf der Galerie], wo dasselbe Kartonmodell auf dem Tisch steht.
 6. Wieder hinaus. Die Kugel schrumpft, das Haus wird wieder zu Karton, die Lampe klickt aus,
    und [Projekt starten] erscheint.
 
@@ -35,9 +35,13 @@ Worauf es mir ankommt:
   gebaut, und eine einzige Bauteilliste wird entweder als Karton oder in echten Materialien an
   denselben Koordinaten gerendert.
 - Karton und Haus werden getrennt beleuchtet: der Karton von der Lampe, das Haus von der Sonne.
-- Der Look: eine fast schwarze Seite, cremefarbener Karton #f2efe7, ein Bernstein-Akzent
-  #e85d04, Chakra Petch für Überschriften, IBM Plex Mono für Beschriftungen, Passermarken in
+- Der Look: nur Schwarz, Weiß und ein Rot. Eine fast schwarze Seite #0a0a0c, weißer Karton
+  #f1eeea, graue Pappe für das Gelände, ein roter Akzent #e5202e. Auch das echte Haus bleibt in
+  dieser Palette: weißer Putz, schwarze Eiche, graue Wiese, rot sind nur Tür, Leder und ein
+  Ahorn. Chakra Petch für Überschriften, IBM Plex Mono für Beschriftungen, Passermarken in
   den Ecken.
+- Die Kamera kommt nie näher als 40 cm an eine Fläche. Baue eine Prüfung ein, die das über den
+  ganzen Weg misst.
 - three.js 0.160 von einem CDN, einfache Dateien, kein Build-Schritt. Keine Bilddateien, jede
   Textur wird im Code gezeichnet.
 

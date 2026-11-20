@@ -2,12 +2,12 @@
 // and every prop here (mat, rule, scalpel, lamp, mug, the wall) is built a hundred times its size.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { houseParts, makeRnd, PEOPLE, TREES } from './house.js';
+import { houseParts, makeRnd, PEOPLE, TREES, G } from './house.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const rnd = makeRnd(23);
-export const MAT_TOP = -9.6;   // the cutting mat's top face
-export const DESK_TOP = -10.1;
+export const MAT_TOP = -4.8;   // the cutting mat's top face
+export const DESK_TOP = -5.3;
 
 // ---------------------------------------------------------------- textures
 let ANISO = 8;
@@ -54,51 +54,51 @@ function makeTextures() {
   const T = {};
   // white mount board: formation clouds, two fibre families and fine tooth, 1 tile = 4 cm on the desk
   T.card = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#f3f0e8'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 110, 'rgba(105,94,78,0.042)', 14, 72);
+    g.fillStyle = '#f0efed'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 110, 'rgba(96,96,102,0.042)', 14, 72);
     blotches(g, s, 80, 'rgba(255,255,255,0.075)', 10, 52);
-    fibres(g, s, 6800, 10, ['rgba(90,80,66,0.085)', 'rgba(255,255,255,0.16)', 'rgba(125,114,98,0.065)'], 0.65);
-    fibres(g, s, 3200, 4.5, ['rgba(75,66,54,0.07)', 'rgba(255,255,255,0.12)'], 0.45);
+    fibres(g, s, 6800, 10, ['rgba(84,84,90,0.085)', 'rgba(255,255,255,0.16)', 'rgba(118,118,124,0.065)'], 0.65);
+    fibres(g, s, 3200, 4.5, ['rgba(70,70,76,0.07)', 'rgba(255,255,255,0.12)'], 0.45);
     grain(g, s, s, 9);
   }, { tile: 4 });
   // greyboard: recycled fibre, pulp flecks, 1 tile = 6 cm
   T.board = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#aba69e'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 140, 'rgba(58,52,45,0.065)', 10, 62);
-    blotches(g, s, 95, 'rgba(205,198,186,0.07)', 10, 52);
-    fibres(g, s, 8200, 7.5, ['rgba(52,45,38,0.18)', 'rgba(195,188,176,0.18)', 'rgba(124,114,100,0.22)'], 0.8);
-    for (let i = 0; i < 1100; i++) { g.fillStyle = ['rgba(42,36,30,0.52)', 'rgba(218,212,200,0.48)', 'rgba(72,82,106,0.36)', 'rgba(136,64,52,0.32)'][Math.floor(rnd() * 4)]; const r = 0.6 + rnd() * 1.7; g.fillRect(rnd() * s, rnd() * s, r, r * (0.5 + rnd())); }
+    g.fillStyle = '#8b8b8f'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 140, 'rgba(40,40,44,0.07)', 10, 62);
+    blotches(g, s, 95, 'rgba(206,206,210,0.07)', 10, 52);
+    fibres(g, s, 8200, 7.5, ['rgba(36,36,40,0.18)', 'rgba(198,198,202,0.18)', 'rgba(112,112,118,0.22)'], 0.8);
+    for (let i = 0; i < 1100; i++) { g.fillStyle = ['rgba(22,22,25,0.52)', 'rgba(224,224,226,0.48)', 'rgba(92,94,100,0.36)', 'rgba(186,34,44,0.36)'][Math.floor(rnd() * 4)]; const r = 0.6 + rnd() * 1.7; g.fillRect(rnd() * s, rnd() * s, r, r * (0.5 + rnd())); }
     grain(g, s, s, 13);
   }, { tile: 6 });
-  // cut greyboard edge: warm pressed-pulp strata, vertical blade score micro-lines, and top-edge crush highlight
+  // cut greyboard edge: pressed-pulp strata, vertical blade score micro-lines, and top-edge crush highlight
   T.burn = canvasTex(512, 512, (g, s) => {
-    g.fillStyle = '#82705e'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#58585c'; g.fillRect(0, 0, s, s);
     for (let y = 0; y < s; y += 2) {
-      g.fillStyle = `rgba(${rnd() < 0.5 ? '42,33,25' : '158,140,120'},${0.10 + rnd() * 0.16})`;
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '24,24,27' : '150,150,155'},${0.10 + rnd() * 0.16})`;
       g.fillRect(0, y, s, 1 + rnd() * 2.2);
     }
     for (let x = 0; x < s; x += 3) {
       if (rnd() < 0.45) {
-        g.fillStyle = `rgba(${rnd() < 0.5 ? '50,40,30' : '175,160,142'},${0.05 + rnd() * 0.08})`;
+        g.fillStyle = `rgba(${rnd() < 0.5 ? '34,34,38' : '172,172,177'},${0.05 + rnd() * 0.08})`;
         g.fillRect(x, 0, 1, s);
       }
     }
     const topGr = g.createLinearGradient(0, 0, 0, s);
-    topGr.addColorStop(0, 'rgba(235,224,208,0.32)');
-    topGr.addColorStop(0.08, 'rgba(210,198,180,0.08)');
-    topGr.addColorStop(0.5, 'rgba(40,32,24,0.08)');
-    topGr.addColorStop(0.92, 'rgba(200,188,170,0.06)');
-    topGr.addColorStop(1, 'rgba(230,218,200,0.26)');
+    topGr.addColorStop(0, 'rgba(232,232,236,0.32)');
+    topGr.addColorStop(0.08, 'rgba(206,206,210,0.08)');
+    topGr.addColorStop(0.5, 'rgba(26,26,30,0.08)');
+    topGr.addColorStop(0.92, 'rgba(196,196,200,0.06)');
+    topGr.addColorStop(1, 'rgba(226,226,230,0.26)');
     g.fillStyle = topGr; g.fillRect(0, 0, s, s);
     grain(g, s, s, 15);
   }, { tile: 1.6 });
   // the cutting mat: 150 x 110 cm, a 1 cm grid, numbers, angle lines
   T.mat = canvasTex(4096, 3004, (g, w, h) => {
     const k = w / 150;
-    g.fillStyle = '#2b463b'; g.fillRect(0, 0, w, h);
-    blotches(g, w, 40, 'rgba(20,36,30,0.10)', 80, 300);
+    g.fillStyle = '#17171a'; g.fillRect(0, 0, w, h);
+    blotches(g, w, 40, 'rgba(0,0,0,0.16)', 80, 300);
     // subtle knife score marks on the self-healing mat near the model
-    g.strokeStyle = 'rgba(18,32,26,0.35)'; g.lineWidth = 1.2;
+    g.strokeStyle = 'rgba(70,70,76,0.5)'; g.lineWidth = 1.2;
     for (let i = 0; i < 45; i++) {
       const sx = w * (0.25 + rnd() * 0.5), sy = h * (0.25 + rnd() * 0.5), ang = (rnd() - 0.5) * 0.4, len = 40 + rnd() * 180;
       g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.cos(ang) * len, sy + Math.sin(ang) * len); g.stroke();
@@ -107,31 +107,32 @@ function makeTextures() {
     g.save(); g.beginPath(); g.rect(m0, m0, w - 2 * m0, h - 2 * m0); g.clip();
     for (let i = 0; i <= 150; i++) {
       const x = i * k, major = i % 10 === 0, mid = i % 5 === 0;
-      g.fillStyle = major ? 'rgba(214,226,206,0.62)' : mid ? 'rgba(214,226,206,0.42)' : 'rgba(214,226,206,0.22)';
+      g.fillStyle = major ? 'rgba(236,234,230,0.62)' : mid ? 'rgba(236,234,230,0.42)' : 'rgba(236,234,230,0.22)';
       g.fillRect(x - (major ? 1.6 : 0.8), 0, major ? 3.2 : 1.6, h);
     }
     for (let j = 0; j <= 110; j++) {
       const y = j * k, major = j % 10 === 0, mid = j % 5 === 0;
-      g.fillStyle = major ? 'rgba(214,226,206,0.62)' : mid ? 'rgba(214,226,206,0.42)' : 'rgba(214,226,206,0.22)';
+      g.fillStyle = major ? 'rgba(236,234,230,0.62)' : mid ? 'rgba(236,234,230,0.42)' : 'rgba(236,234,230,0.22)';
       g.fillRect(0, y - (major ? 1.6 : 0.8), w, major ? 3.2 : 1.6);
     }
-    g.strokeStyle = 'rgba(214,226,206,0.35)'; g.lineWidth = 2;
+    g.strokeStyle = 'rgba(236,234,230,0.35)'; g.lineWidth = 2;
     for (const a of [45, 60, 30]) { g.beginPath(); g.moveTo(m0, h - m0); g.lineTo(m0 + Math.cos(a * Math.PI / 180) * 3000, h - m0 - Math.sin(a * Math.PI / 180) * 3000); g.stroke(); }
     g.restore();
-    g.fillStyle = 'rgba(214,226,206,0.7)'; g.font = `500 ${Math.round(k * 0.62)}px "IBM Plex Mono", monospace`; g.textAlign = 'center';
+    g.fillStyle = 'rgba(236,234,230,0.7)'; g.font = `500 ${Math.round(k * 0.62)}px "IBM Plex Mono", monospace`; g.textAlign = 'center';
     for (let i = 4; i < 147; i++) { g.fillText(String(i - 3), i * k, m0 - k * 0.6); g.fillText(String(i - 3), i * k, h - m0 + k * 1.2); }
     g.textAlign = 'right';
     for (let j = 4; j < 107; j++) g.fillText(String(j - 3), m0 - k * 0.5, j * k + k * 0.2);
     g.font = `600 ${Math.round(k * 0.9)}px "Chakra Petch", sans-serif`; g.textAlign = 'left';
+    g.fillStyle = 'rgba(232,40,52,0.92)';
     g.fillText('SELBSTHEILENDE  A0  SCHNEIDEMATTE', m0 + k * 4, h - m0 + k * 2.6);
     grain(g, w, h, 6);
   });
-  // a dark oak desk
+  // a desk of black-stained oak
   T.desk = canvasTex(2048, 1024, (g, w, h) => {
-    g.fillStyle = '#3a2a1f'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#1a1a1d'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 700; i++) {
       const y = rnd() * h, a = 0.03 + rnd() * 0.09;
-      g.strokeStyle = `rgba(${rnd() < 0.6 ? '18,11,7' : '110,80,55'},${a})`; g.lineWidth = 0.6 + rnd() * 2.2;
+      g.strokeStyle = `rgba(${rnd() < 0.6 ? '4,4,6' : '84,84,92'},${a})`; g.lineWidth = 0.6 + rnd() * 2.2;
       g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 64) g.lineTo(x, y + Math.sin(x * 0.004 + y) * 6 + (rnd() - 0.5) * 1.5); g.stroke();
     }
     grain(g, w, h, 8);
@@ -210,41 +211,41 @@ export function makeMaterials(env) {
   const T = makeTextures();
   const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.9, metalness: 0, envMap: env, envMapIntensity: 0.16 }, o));
   const M = { T };
-  M.card = withCore(std({ color: 0xf4f1ea, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 }), new THREE.Color(0.86, 0.82, 0.75));
-  M.cardPlain = std({ color: 0xf4f1ea, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 });
+  M.card = withCore(std({ color: 0xf3f2f0, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 }), new THREE.Color(0.80, 0.80, 0.82));
+  M.cardPlain = std({ color: 0xf3f2f0, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 });
   M.acetate = new THREE.MeshPhysicalMaterial({
-    color: 0xeaf2f4, roughness: 0.04, metalness: 0.04, clearcoat: 1.0, clearcoatRoughness: 0.03,
+    color: 0xeef1f5, roughness: 0.04, metalness: 0.04, clearcoat: 1.0, clearcoatRoughness: 0.03,
     ior: 1.56, reflectivity: 0.9, transparent: true, opacity: 0.21, envMap: env, envMapIntensity: 1.9,
     depthWrite: false, side: THREE.DoubleSide,
   });
   M.board = std({ color: 0xffffff, map: T.board, bumpMap: T.board, bumpScale: 0.06, roughness: 0.94, envMapIntensity: 0.14 });
   M.burn = std({ color: 0xffffff, map: T.burn, bumpMap: T.burn, bumpScale: 0.045, roughness: 0.84, envMapIntensity: 0.18 });
-  M.figure = std({ color: 0xf0ede6, map: T.card, bumpMap: T.card, bumpScale: 0.025, roughness: 0.62, envMapIntensity: 0.22 });
+  M.figure = std({ color: 0xf0efed, map: T.card, bumpMap: T.card, bumpScale: 0.025, roughness: 0.62, envMapIntensity: 0.22 });
   M.mat = std({ map: T.mat, bumpMap: T.mat, bumpScale: 0.015, roughness: 0.78, envMapIntensity: 0.14 });
-  M.matEdge = std({ color: 0x264036, roughness: 0.82 });
+  M.matEdge = std({ color: 0x0e0e10, roughness: 0.82 });
   M.desk = std({ map: T.desk, bumpMap: T.desk, bumpScale: 0.03, roughness: 0.52, envMapIntensity: 0.2 });
   M.rule = std({ color: 0xe6ebf0, map: T.rule, roughnessMap: T.ruleRough, bumpMap: T.ruleRough, bumpScale: 0.018, metalness: 0.52, roughness: 0.34, envMapIntensity: 1.45 });
   M.steel = std({ color: 0xd4d9de, metalness: 0.62, roughness: 0.28, envMapIntensity: 1.25 });
   M.blade = std({ color: 0xe8ecef, metalness: 0.78, roughness: 0.16, envMapIntensity: 1.65 });
-  M.pencil = std({ color: 0xd8a62a, roughness: 0.42 });
+  M.pencil = std({ color: 0xcf1f2b, roughness: 0.42 });
   M.pencilStripe = std({ color: 0x1c1b1a, roughness: 0.42 });
-  M.wood = std({ color: 0xd9b78f, roughness: 0.78 });
+  M.wood = std({ color: 0xd9cfc2, roughness: 0.78 });
   M.lead = std({ color: 0x2b2b2b, roughness: 0.35, metalness: 0.35 });
-  M.trace = std({ color: 0xf1e7b2, map: T.card, roughness: 0.82, transparent: true, opacity: 0.93 });
-  M.lamp = std({ color: 0x26282c, roughness: 0.28, metalness: 0.76, envMapIntensity: 1.05 });
-  M.lampRim = std({ color: 0x26282c, roughness: 0.26, metalness: 0.76, envMapIntensity: 1.0, emissive: 0xffc68c, emissiveIntensity: 0 }); // the lip of the shade, lit from inside
-  M.lampInner = new THREE.MeshStandardMaterial({ color: 0xf5f1e8, roughness: 0.38, emissive: 0xffd9a8, emissiveIntensity: 0, side: THREE.BackSide });
+  M.trace = std({ color: 0xe9e8e4, map: T.card, roughness: 0.82, transparent: true, opacity: 0.93 });
+  M.lamp = std({ color: 0x1b1c1f, roughness: 0.28, metalness: 0.76, envMapIntensity: 1.05 });
+  M.lampRim = std({ color: 0x1b1c1f, roughness: 0.26, metalness: 0.76, envMapIntensity: 1.0, emissive: 0xfff0e2, emissiveIntensity: 0 }); // the lip of the shade, lit from inside
+  M.lampInner = new THREE.MeshStandardMaterial({ color: 0xf4f3f0, roughness: 0.38, emissive: 0xfff1e4, emissiveIntensity: 0, side: THREE.BackSide });
   M.spring = std({ color: 0xa6abb0, metalness: 0.92, roughness: 0.28, envMapIntensity: 0.85 });
-  M.bulb = new THREE.MeshStandardMaterial({ color: 0x222018, emissive: 0xffe3b8, emissiveIntensity: 0, roughness: 0.25 });
-  M.mug = std({ color: 0xeee9df, roughness: 0.22, envMapIntensity: 0.4 });
+  M.bulb = new THREE.MeshStandardMaterial({ color: 0x222018, emissive: 0xfff4ea, emissiveIntensity: 0, roughness: 0.25 });
+  M.mug = std({ color: 0xeceae6, roughness: 0.22, envMapIntensity: 0.4 });
   M.coffee = std({ color: 0x1e120b, roughness: 0.08, envMapIntensity: 0.65 });
-  M.wall = std({ color: 0x2c2926, roughness: 0.98, envMapIntensity: 0.05 });
-  M.pin = std({ color: 0xc23b22, roughness: 0.32 });
-  M.tape = std({ color: 0xe6dcc3, roughness: 0.88, transparent: true, opacity: 0.85 });
+  M.wall = std({ color: 0x1c1c1f, roughness: 0.98, envMapIntensity: 0.05 });
+  M.pin = std({ color: 0xe5202e, roughness: 0.32 });
+  M.tape = std({ color: 0xe4e2dd, roughness: 0.88, transparent: true, opacity: 0.85 });
   M.night = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
   M.frame = std({ color: 0x1b1a19, roughness: 0.7 });
-  M.book1 = std({ color: 0x8a3524, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.78 });
-  M.book2 = std({ color: 0xd9d2c3, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.82 });
+  M.book1 = std({ color: 0xb5151f, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.78 });
+  M.book2 = std({ color: 0xe4e2dd, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.82 });
   return M;
 }
 
@@ -288,12 +289,12 @@ function mesh(geo, mat, { cast = true, receive = true } = {}) {
 }
 
 // ---------------------------------------------------------------- the card house
-// The same list of parts as the real house. Furniture, paving and footings stay out of a card model.
+// The same list of parts as the real house. Furniture, fittings, paving and footings stay out of a card model.
 export function cardHouse(M) {
   const card = [], acetate = [];
   for (const p of houseParts()) {
-    if (p.k === 'furn' || p.k === 'land' || p.ph <= 1) continue;
-    (p.k === 'glass' ? acetate : card).push(cardBox(p.b));
+    if (p.k === 'furn' || p.k === 'land' || p.k === 'fit' || p.k === 'doorfit' || p.ph <= 1) continue;
+    (p.k === 'glass' || p.k === 'doorglass' ? acetate : card).push(cardBox(p.b));
   }
   const g = new THREE.Group();
   g.add(mesh(mergeGeometries(card.map((q) => q.toNonIndexed())), M.card));
@@ -302,12 +303,15 @@ export function cardHouse(M) {
   return g;
 }
 
-// ---------------------------------------------------------------- the site: stacked greyboard, one layer per 0.8 m
-export const shiftZ = (z) => { const a = Math.max(0, Math.min(1, (Math.abs(z + 2) - 6) / 10)); return 2.8 * (1 - Math.cos(a * Math.PI)) / 2 + 0.7 * Math.sin(z * 0.33) * a; };
-export const Xof = (t, z) => (t > -3.2 ? 4 + (-t) / 3.2 * 13 : 26 + (-3.2 - t) / 2.4 * 10) + shiftZ(z);
-export const SITE = { x0: -14, x1: 40, z0: -20, z1: 14, base: -6.4 };
-export const LAYER_TOPS = []; for (let t = -5.6; t <= 0.001; t += 0.8) LAYER_TOPS.push(+t.toFixed(2));
-// the top of the stack at (x, z), ignoring the house's cut-out
+// ---------------------------------------------------------------- the site: stacked greyboard, one layer per 0.4 m
+// The house stands on the top layer. South of the terrace the garden steps down, bench by bench,
+// to the lawn the little figure stands on.
+export const shiftZ = (z) => { const a = Math.max(0, Math.min(1, (Math.abs(z + 2) - 7.5) / 9)); return 3.4 * (1 - Math.cos(a * Math.PI)) / 2 - 0.6 * Math.sin(z * 0.29 + 0.8) * a; };
+export const FALL = 2.8, STEP = 0.4, BENCH = 1.5, SLOPE_X = 22.5; // the garden drops 2.8 m, in layers of 0.4 m that are each 1.5 m wide
+export const Xof = (t, z) => SLOPE_X + (G - t) / STEP * BENCH + shiftZ(z);
+export const SITE = { x0: -14, x1: 40, z0: -20, z1: 14, base: +(G - FALL).toFixed(2) };
+export const LAYER_TOPS = []; for (let i = Math.round(FALL / STEP) - 1; i >= 0; i--) LAYER_TOPS.push(+(G - i * STEP).toFixed(2));
+// the top of the stack at (x, z)
 export function groundAt(x, z) {
   let top = SITE.base;
   for (const t of LAYER_TOPS) if (x < Math.min(SITE.x1, Xof(t, z))) top = t;
@@ -316,26 +320,18 @@ export function groundAt(x, z) {
 export function contourLayers(M) {
   const { x0: BX0, x1: BX1, z0: BZ0, z1: BZ1 } = SITE;
   const layers = [];
-  const layer = (yb, t, pts, holes = []) => {
+  const layer = (yb, t, pts) => {
     const sh = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)));
-    for (const h of holes) sh.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
     const geo = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 4 });
     geo.rotateX(-Math.PI / 2); geo.translate(0, yb, 0); worldUV(geo);
     const m = mesh(geo, [M.board, M.burn]); m.userData.top = yb + t; layers.push(m);
   };
-  layer(-9.6, 3.2, [[BX0, BZ0], [BX1, BZ0], [BX1, BZ1], [BX0, BZ1]]);
+  layer(MAT_TOP, SITE.base - MAT_TOP, [[BX0, BZ0], [BX1, BZ0], [BX1, BZ1], [BX0, BZ1]]);
   for (const t of LAYER_TOPS) {
-    const zs = []; for (let z = BZ0; z <= BZ1 + 1e-6; z += 0.5) zs.push(+z.toFixed(2));
-    const notch = t > -3.2 + 1e-6;
     const pts = [[BX0, BZ0]];
-    for (const z of zs) {
-      if (notch && z > -8 && z < 4) continue;
-      pts.push([Math.min(BX1, Xof(t, z)), z]);
-      if (notch && z === -8) pts.push([3.7, -8], [3.7, 4]);
-    }
+    for (let z = BZ0; z <= BZ1 + 1e-6; z += 0.5) pts.push([Math.min(BX1, Xof(t, z)), +z.toFixed(2)]);
     pts.push([BX0, BZ1]);
-    const holes = (!notch && t > -3.6) ? [[[3.7, -8], [18.3, -8], [18.3, 4], [3.7, 4]].reverse()] : [];
-    layer(t - 0.8, 0.8, pts, holes);
+    layer(t - STEP, STEP, pts);
   }
   return layers;
 }
@@ -343,17 +339,17 @@ export function contourLayers(M) {
 // ---------------------------------------------------------------- model trees: two laser-cut card profiles slotted in a cross
 function crownOutline(kind) {
   const pts = [];
-  if (kind === 'cypress') {
-    const H = 6.6, R = 0.95, y0 = 0.9, N = 96;
+  if (kind === 'poplar') {
+    const H = 7.8, R = 0.78, y0 = 1.0, N = 96;
     for (let i = 0; i <= N; i++) { const s = i / N, y = y0 + s * H; const w = R * Math.sin(Math.PI * s) ** 0.55 * (1 - s * 0.2); pts.push([w + 0.018 * Math.sin(s * 38), y]); }
     for (let i = N; i >= 0; i--) { const s = i / N, y = y0 + s * H; const w = R * Math.sin(Math.PI * s) ** 0.55 * (1 - s * 0.2); pts.push([-w - 0.018 * Math.sin(s * 35), y]); }
     return { pts, trunk: y0 + 0.1 };
   }
-  const R = kind === 'olive' ? 1.55 : 1.35, cy = kind === 'olive' ? 2.9 : 3.15, sq = kind === 'olive' ? 0.72 : 0.95;
-  const lobes = kind === 'olive' ? 7 : 9, amp = kind === 'olive' ? 0.068 : 0.035, ph = rnd() * 6, N = 180;
+  const R = kind === 'maple' ? 1.72 : 1.35, cy = kind === 'maple' ? 2.8 : 3.15, sq = kind === 'maple' ? 0.66 : 0.95;
+  const lobes = kind === 'maple' ? 9 : 9, amp = kind === 'maple' ? 0.075 : 0.035, ph = rnd() * 6, N = 180;
   for (let i = 0; i <= N; i++) {
     const a = -Math.PI / 2 + i / N * Math.PI * 2;
-    const r = R * (1 + amp * Math.sin(a * lobes + ph) + (kind === 'olive' ? 0.045 * Math.sin(a * 3 + ph * 2) : 0.015 * Math.cos(a * 5)));
+    const r = R * (1 + amp * Math.sin(a * lobes + ph) + (kind === 'maple' ? 0.045 * Math.sin(a * 3 + ph * 2) : 0.015 * Math.cos(a * 5)));
     pts.push([Math.cos(a) * r, cy + Math.sin(a) * r * sq]);
   }
   return { pts, trunk: cy - R * sq + 0.15 };
@@ -374,7 +370,7 @@ function withTreeCore(g, t) {
 function clamp(x, a, b) { return Math.min(b, Math.max(a, x)); }
 function treeGeo(kind) {
   const { pts, trunk } = crownOutline(kind);
-  const tw = kind === 'olive' ? 0.11 : 0.085;
+  const tw = kind === 'maple' ? 0.11 : 0.085;
   // one profile: trunk plus crown, as a single outline (trunk rectangle, then the crown drawn around)
   const sh = new THREE.Shape();
   sh.moveTo(-tw, 0); sh.lineTo(tw, 0); sh.lineTo(tw, trunk);
@@ -391,14 +387,8 @@ function treeGeo(kind) {
   const tab = plain(worldUV(new THREE.CylinderGeometry(0.34, 0.34, 0.06, 28).translate(0, 0.03, 0))); // a little card disc it stands on
   return mergeGeometries([a, b, tab]);
 }
-const MORE_TREES = [['round', 30.5, -6.5], ['olive', 24.5, 10.5], ['cypress', 25.5, 12.2], ['round', -11.5, 9.5], ['olive', -2.5, 9.0], ['cypress', 1.5, -15.5], ['round', 24.5, -16], ['round', 36.8, 13.8], ['olive', 36.5, -3.2]];
 // every tree on the model, [kind, x, z]: the real trees grow at the same spots
-export function treeSpots() {
-  const out = [];
-  for (const [kind, x, , z] of TREES) out.push([kind, x, z]);
-  for (const [kind, x, z] of MORE_TREES) out.push([kind, x, z]);
-  return out;
-}
+export function treeSpots() { return TREES.map(([kind, x, z]) => [kind, x, z]); }
 export function modelTrees(M) {
   return treeSpots().map(([kind, x, z]) => {
     const g = treeGeo(kind); g.rotateY(rnd() * Math.PI);
@@ -416,16 +406,16 @@ export function figureGeo() {
   return g;
 }
 // the hero's figure, in the lower garden where the dive ends
-export const HERO_FIG = [32.8, 6.4, -1.99]; // x, z, facing (radians about y): on the -4.80 terrace, looking at the house
+export const HERO_FIG = [33.4, 4.4, -1.74]; // x, z, facing (radians about y): on the lawn at the foot of the garden steps, looking at the house
 export function modelFigures(M) {
   const geo = figureGeo();
-  const list = PEOPLE.filter((p) => p[0] !== 21.6).map(([x, y, z, r]) => [x, y, z, r]);
+  const list = PEOPLE.map(([x, y, z, r]) => [x, y ?? groundAt(x, z), z, r]);
   list.push([HERO_FIG[0], groundAt(HERO_FIG[0], HERO_FIG[1]), HERO_FIG[1], HERO_FIG[2]]);
   return list.map(([x, y, z, r]) => { const m = mesh(geo, M.figure); m.position.set(x, y, z); m.rotation.y = r; return m; });
 }
 
 // ---------------------------------------------------------------- the desk, and what lies on it
-export const LAMP = { base: V(88, DESK_TOP, 40), head: V(56, 36, 12), aimAt: V(14, -4.5, -2.5) };
+export const LAMP = { base: V(88, DESK_TOP, 40), head: V(56, 36, 12), aimAt: V(14, -2.4, -2.4) };
 export function deskProps(M) {
   const g = new THREE.Group();
   const put = (geo, mat, opts) => { const m = mesh(geo, mat, opts); g.add(m); return m; };
@@ -540,66 +530,80 @@ export function sheetTexture(kind, trace) {
   return canvasTex(W, Hh, (g) => drawSheet(g, W, Hh, kind, trace));
 }
 function drawSheet(g, W, H, kind, trace) {
-  g.fillStyle = trace ? '#efe4b0' : '#efebe2'; g.fillRect(0, 0, W, H);
-  blotches(g, Math.max(W, H), 30, trace ? 'rgba(160,140,80,0.05)' : 'rgba(120,110,95,0.04)', 40, 160);
-  const ink = 'rgba(28,26,23,0.92)', thin = 'rgba(28,26,23,0.55)';
+  g.fillStyle = trace ? '#d4d3cf' : '#eceae6'; g.fillRect(0, 0, W, H);
+  blotches(g, Math.max(W, H), 30, trace ? 'rgba(86,86,92,0.05)' : 'rgba(110,110,116,0.04)', 40, 160);
+  const ink = 'rgba(16,16,18,0.92)', thin = 'rgba(16,16,18,0.55)', red = 'rgba(226,30,44,0.92)', paper = trace ? '#d4d3cf' : '#eceae6';
   g.strokeStyle = ink; g.lineWidth = 4; g.strokeRect(36, 36, W - 72, H - 72);
   // title block
   g.strokeRect(W - 360, H - 150, 324, 114); g.beginPath(); g.moveTo(W - 360, H - 106); g.lineTo(W - 36, H - 106); g.stroke();
-  g.fillStyle = ink; g.font = '600 26px "Chakra Petch", sans-serif'; g.fillText({ plan: 'GRUNDRISS +0.00', section: 'SCHNITT A-A', elev: 'SÜDANSICHT', site: 'LAGEPLAN', lower: 'GRUNDRISS -3.20' }[kind], W - 344, H - 120);
-  g.font = '500 17px "IBM Plex Mono", monospace'; g.fillText('HAUS AM HANG  1:100', W - 344, H - 76); g.fillText('ATELIER 1:100  A-' + (200 + kind.length * 7), W - 344, H - 50);
-  const parts = houseParts();
+  g.fillStyle = red; g.fillRect(W - 360, H - 150, 9, 114);
+  g.fillStyle = ink; g.font = '600 26px "Chakra Petch", sans-serif'; g.fillText({ plan: 'GRUNDRISS ±0.00', upper: 'GRUNDRISS +3.10', section: 'SCHNITT A-A', elev: 'SÜDANSICHT', site: 'LAGEPLAN' }[kind], W - 338, H - 120);
+  g.font = '500 17px "IBM Plex Mono", monospace'; g.fillText('HAUS PASSEPARTOUT  1:100', W - 338, H - 76); g.fillText('ATELIER 1:100  A-' + (200 + kind.length * 7), W - 338, H - 50);
+  const parts = houseParts().filter((p) => p.k !== 'fit' && p.k !== 'doorfit');
   const draw = (x0, x1, y0, y1, fn) => { // map a world rectangle into the sheet's drawing area
     const ax = 90, ay = 80, aw = W - 180, ah = H - 280;
     const k = Math.min(aw / (x1 - x0), ah / (y1 - y0));
     const ox = ax + (aw - (x1 - x0) * k) / 2, oy = ay + (ah - (y1 - y0) * k) / 2;
     fn((x) => ox + (x - x0) * k, (y) => oy + (y1 - y) * k, k);
   };
-  if (kind === 'plan' || kind === 'lower') {
-    const cut = kind === 'plan' ? 1.2 : -2.0;
-    draw(-10, 26, -11, 6, (X, Y, k) => {
-      const Z = (z) => Y(-z);
-      for (const p of parts) { const b = p.b; if (b[1] > cut || b[4] < cut - 1.4) continue; if (p.k === 'struct' && b[4] <= cut) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(X(b[0]), Z(b[5]), (b[3] - b[0]) * k, (b[5] - b[2]) * k); } }
+  if (kind === 'plan' || kind === 'upper') {
+    const cut = kind === 'plan' ? 1.2 : 4.3, floor = kind === 'plan' ? 0 : 3.1;
+    draw(-4.5, 24, -9.5, 7.5, (X, Y, k) => {
+      const Z = (z) => Y(-z);  // z runs down the sheet, north is on the left
+      const R = (b) => [X(b[0]), Z(b[2]), (b[3] - b[0]) * k, (b[5] - b[2]) * k];
+      // what lies below the cut: floor edges, the terrace, the steps
+      for (const p of parts) { const b = p.b; if (b[4] > cut || b[4] < floor - 0.4) continue; if (p.k === 'struct' || p.k === 'land') { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(b)); } }
+      for (const p of parts) { const b = p.b; if (p.k === 'furn' && b[1] < cut && b[4] > floor - 0.05 && b[1] > floor - 0.1) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(b)); } }
+      for (const p of parts) if (p.k === 'stair') { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(p.b)); }
       for (const p of parts) {
         const b = p.b; if (!(b[1] < cut && b[4] > cut)) continue;
-        if (p.k === 'glass') { g.strokeStyle = ink; g.lineWidth = 2.4; g.strokeRect(X(b[0]), Z(b[5]), Math.max(1, (b[3] - b[0]) * k), Math.max(1, (b[5] - b[2]) * k)); }
-        else if (p.k === 'struct' || p.k === 'frame') { g.fillStyle = ink; g.fillRect(X(b[0]), Z(b[5]), (b[3] - b[0]) * k, (b[5] - b[2]) * k); }
-        else if (p.k === 'furn') { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(X(b[0]), Z(b[5]), (b[3] - b[0]) * k, (b[5] - b[2]) * k); }
+        if (p.k === 'glass' || p.k === 'doorglass') { g.strokeStyle = ink; g.lineWidth = 2.4; const r = R(b); g.strokeRect(r[0], r[1], Math.max(1, r[2]), Math.max(1, r[3])); }
+        else if (p.k === 'door') { g.fillStyle = red; g.fillRect(...R(b)); }
+        else if (p.k === 'struct' || p.k === 'frame') { g.fillStyle = ink; g.fillRect(...R(b)); }
       }
-      for (const p of parts) if (p.k === 'stair') { const b = p.b; g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(X(b[0]), Z(b[5]), (b[3] - b[0]) * k, (b[5] - b[2]) * k); }
-      g.fillStyle = ink; g.font = '500 15px "IBM Plex Mono", monospace';
-      for (const [l, x] of [['A', 3.85], ['B', 11], ['C', 18.25]]) { g.beginPath(); g.arc(X(x), Z(-10.2), 13, 0, 7); g.stroke(); g.fillText(l, X(x) - 5, Z(-10.2) + 5); }
+      if (kind === 'upper') { // the void over the living room
+        g.strokeStyle = thin; g.lineWidth = 1.6; g.beginPath(); g.moveTo(X(12.6), Z(-2.2)); g.lineTo(X(16.7), Z(2.7)); g.moveTo(X(16.7), Z(-2.2)); g.lineTo(X(12.6), Z(2.7)); g.stroke();
+      }
+      g.strokeStyle = ink; g.lineWidth = 2; g.fillStyle = ink; g.font = '500 15px "IBM Plex Mono", monospace';
+      for (const [l, x] of [['A', 5.15], ['B', 11.68], ['C', 16.85]]) { g.beginPath(); g.arc(X(x), Z(-8.6), 13, 0, 7); g.stroke(); g.fillText(l, X(x) - 5, Z(-8.6) + 5); }
+      g.strokeStyle = red; g.setLineDash([12, 8]); g.lineWidth = 2; g.beginPath(); g.moveTo(X(-3.5), Z(0.6)); g.lineTo(X(23.5), Z(0.6)); g.stroke(); g.setLineDash([]);
     });
   } else if (kind === 'section') {
-    draw(-8, 30, -6, 9.5, (X, Y, k) => {
-      g.fillStyle = 'rgba(28,26,23,0.12)';
-      g.beginPath(); g.moveTo(X(-8), Y(0)); g.lineTo(X(3.7), Y(0)); g.lineTo(X(3.7), Y(-3.6)); g.lineTo(X(18.3), Y(-3.6)); g.lineTo(X(18.3), Y(-3.2)); g.lineTo(X(26), Y(-3.2)); g.lineTo(X(30), Y(-4.6)); g.lineTo(X(30), Y(-6)); g.lineTo(X(-8), Y(-6)); g.closePath(); g.fill();
-      for (const p of parts) { const b = p.b; if (b[2] < 0 && b[5] <= 0 && (p.k === 'struct' || p.k === 'furn' || p.k === 'stair')) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(X(b[0]), Y(b[4]), (b[3] - b[0]) * k, (b[4] - b[1]) * k); } }
-      for (const p of parts) { const b = p.b; if (b[2] < 0 && b[5] > 0 && p.k !== 'glass' && p.k !== 'land') { g.fillStyle = ink; g.fillRect(X(b[0]), Y(b[4]), (b[3] - b[0]) * k, (b[4] - b[1]) * k); } }
-      g.strokeStyle = 'rgba(232,93,4,0.92)'; g.setLineDash([12, 8]); g.lineWidth = 2;
-      g.beginPath(); g.moveTo(X(29), Y(9)); g.lineTo(X(8), Y(0.05)); g.stroke(); g.setLineDash([]);
+    const cz = 0.6; // the cut runs through the door, the void and the rooflight; we look west
+    draw(-3, 36, -4.6, 8.6, (X, Y, k) => {
+      g.fillStyle = 'rgba(16,16,18,0.12)';
+      g.beginPath(); g.moveTo(X(-3), Y(G)); g.lineTo(X(21.75), Y(G)); g.lineTo(X(32.25), Y(G - FALL)); g.lineTo(X(36), Y(G - FALL)); g.lineTo(X(36), Y(-4.4)); g.lineTo(X(-3), Y(-4.4)); g.closePath(); g.fill();
+      const R = (b) => [X(b[0]), Y(b[4]), (b[3] - b[0]) * k, (b[4] - b[1]) * k];
+      for (const p of parts) { const b = p.b; if (b[5] <= cz && b[5] > -6.8 && (p.k === 'struct' || p.k === 'furn' || p.k === 'stair') && p.ph > 1) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(b)); } }
+      for (const p of parts) {
+        const b = p.b; if (!(b[2] < cz && b[5] > cz) || p.k === 'glass' || p.k === 'doorglass' || p.k === 'land' || p.k === 'furn') continue;
+        g.fillStyle = p.k === 'door' ? red : ink; g.fillRect(...R(b));
+      }
+      g.strokeStyle = red; g.setLineDash([12, 8]); g.lineWidth = 2;
+      g.beginPath(); g.moveTo(X(35.5), Y(5.9)); g.lineTo(X(5.4), Y(1.75)); g.stroke(); g.setLineDash([]);
     });
   } else if (kind === 'elev') {
-    draw(-9, 5.5, -5, 9, (X, Y, k) => {
+    draw(-7, 9, -3.2, 8.2, (X, Y, k) => {
       const Zx = (z) => X(-z);
-      const list = parts.filter((p) => p.k !== 'furn' && p.k !== 'land').sort((a, b) => a.b[3] - b.b[3]);
+      const list = parts.filter((p) => p.k !== 'furn' && p.k !== 'land' && p.ph > 1).sort((a, b) => a.b[3] - b.b[3]);
       for (const p of list) {
         const b = p.b, x = Zx(b[5]), y = Y(b[4]), w = (b[5] - b[2]) * k, h = (b[4] - b[1]) * k;
-        if (p.k === 'glass') { g.fillStyle = 'rgba(120,140,150,0.18)'; g.fillRect(x, y, w, h); continue; }
-        g.fillStyle = p.k === 'frame' ? ink : '#efebe2'; g.fillRect(x, y, w, h);
+        if (p.k === 'glass' || p.k === 'doorglass') { g.fillStyle = 'rgba(110,116,128,0.16)'; g.fillRect(x, y, w, h); continue; }
+        g.fillStyle = p.k === 'door' ? red : p.k === 'frame' ? ink : paper; g.fillRect(x, y, w, h);
         g.strokeStyle = ink; g.lineWidth = 2.4; g.strokeRect(x, y, w, h);
       }
-      g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(Zx(9), Y(-3.2)); g.lineTo(Zx(-9), Y(-3.2)); g.stroke();
+      g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(Zx(8.5), Y(G)); g.lineTo(Zx(-9), Y(G)); g.stroke();
     });
   } else {
-    draw(-14, 40, -20, 14, (X, Y, k) => {
+    draw(-14, 40, -14, 20, (X, Y, k) => {
       const Z = (z) => Y(-z);
       g.strokeStyle = thin; g.lineWidth = 2.4;
       for (const t of LAYER_TOPS) { g.beginPath(); for (let z = -20; z <= 14; z += 0.5) { const x = Math.min(40, Xof(t, z)); z === -20 ? g.moveTo(X(x), Z(z)) : g.lineTo(X(x), Z(z)); } g.stroke(); }
-      g.save(); g.beginPath(); g.rect(X(3.7), Z(4), 14.6 * k, 12 * k); g.clip();
-      g.strokeStyle = ink; g.lineWidth = 2; for (let i = -40; i < 60; i++) { g.beginPath(); g.moveTo(X(3.7) + i * 9, Z(4)); g.lineTo(X(3.7) + i * 9 + 12 * k, Z(4) + 12 * k); g.stroke(); }
-      g.restore(); g.lineWidth = 4; g.strokeRect(X(3.7), Z(4), 14.6 * k, 12 * k);
-      g.fillStyle = 'rgba(205,75,30,0.9)'; g.beginPath(); g.arc(X(32), Z(-14), 16, 0, 7); g.fill();
+      g.strokeRect(X(17), Z(-7), 4.2 * k, 12.6 * k);
+      g.save(); g.beginPath(); g.rect(X(5), Z(-7), 13.4 * k, 10 * k); g.clip();
+      g.strokeStyle = ink; g.lineWidth = 2; for (let i = -40; i < 60; i++) { g.beginPath(); g.moveTo(X(5) + i * 9, Z(-7)); g.lineTo(X(5) + i * 9 + 10 * k, Z(-7) + 10 * k); g.stroke(); }
+      g.restore(); g.lineWidth = 4; g.strokeRect(X(5), Z(-7), 13.4 * k, 10 * k);
+      g.fillStyle = red; g.beginPath(); g.arc(X(33.4), Z(4.4), 14, 0, 7); g.fill();
     });
   }
   grain(g, W, H, 8);
@@ -614,7 +618,7 @@ function studioWalls(M) {
   const far = new THREE.PlaneGeometry(420, 260); far.rotateY(Math.PI); far.translate(130, 110, 150); put(far, M.wall);
   const ceil = new THREE.PlaneGeometry(420, 420); ceil.rotateX(Math.PI / 2); ceil.translate(60, 236, 30); put(ceil, M.wall);
   // drawings: [wall, u, v, width, kind, trace] — arranged so the card house roofline reads cleanly against the studio wall at eye-level
-  const sheets = [['x', -54, 14, 52, 'section', false], ['x', 2, 18, 44, 'plan', false], ['x', 50, 14, 40, 'elev', true], ['x', 96, 15, 44, 'lower', false],
+  const sheets = [['x', -54, 14, 52, 'section', false], ['x', 2, 18, 44, 'plan', false], ['x', 50, 14, 40, 'elev', true], ['x', 96, 15, 44, 'upper', false],
     ['x', 22, 60, 40, 'section', true], ['x', 72, 56, 36, 'plan', false],
     ['z', -40, 15, 48, 'elev', false], ['z', 12, 18, 40, 'plan', true], ['z', 62, 14, 44, 'site', false], ['z', -10, 58, 42, 'section', false],
     ['z', 114, 16, 46, 'plan', false], ['z', 88, 56, 40, 'elev', true],
