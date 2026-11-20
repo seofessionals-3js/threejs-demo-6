@@ -56,7 +56,9 @@ float coreLine = exp( -pow( dSeam / sweepWv, 2.0 ) );
 float echoLine = 0.36 * exp( -pow( ( dSeam - sweepWv * 2.6 ) / ( sweepWv * 0.75 ), 2.0 ) );
 float softBand = 0.03 * exp( -pow( dSeam / ( sweepWv * 4.5 ), 2.0 ) );
 float gridEnv = exp( -pow( dSeam / ( sweepWv * 24.0 ), 1.6 ) );
-float cY = 1.0 - smoothstep( 0.0, 0.06, abs( fract( vSweepW.y * 2.0 + 0.5 ) - 0.5 ) );
+// height lines every 0.5 m. Not on level surfaces: a floor that lies exactly on a line would turn red all over
+float sweepGy = vSweepW.y * 2.0 + 0.5;
+float cY = ( 1.0 - smoothstep( 0.0, 0.06, abs( fract( sweepGy ) - 0.5 ) ) ) * smoothstep( 0.0006, 0.004, fwidth( sweepGy ) );
 float cX = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.x + 0.5 ) - 0.5 ) );
 float cZ = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.z + 0.5 ) - 0.5 ) );
 float cadGrid = max( cY * 0.8, max( cX, cZ ) * 0.6 ) * gridEnv * ${side === 'real' ? '1.0' : '0.22'}; // the grid belongs to what has just been scanned

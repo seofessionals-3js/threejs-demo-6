@@ -243,7 +243,7 @@ const WALK = [
   { p: V(15.15, 4.42, -3.5), t: V(14.1, 3.95, -5.1) },    // round the corner of the desk
   { p: V(15.3, 4.2, -4.3), t: V(14.12, 3.96, -5.08) },    // close on the lit model, the bookcase behind it
   { p: V(15.2, 4.62, -3.7), t: V(12.3, 4.3, 1.4) },       // turning round by way of the void and the painting across it
-  { p: V(15.7, 4.7, -3.4), t: V(62, -3.2, 14.4) },       // and out through the study's own glass: the balcony, the garden, the dark room the desk stands in
+  { p: V(14.8, 4.7, -4.05), t: V(60, -4.6, 14.5) },       // and out through the study's own glass: the balcony, the garden, the dark room the desk stands in
 ];
 const WALK_DOOR = 4, WALK_HOLD = 7, WALK_DESK = 12; // the keys the walk is timed by
 const BACK = [
