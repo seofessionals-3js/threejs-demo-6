@@ -232,6 +232,7 @@ export function makeMaterials(env) {
   M.wood = std({ color: 0xd9cfc2, roughness: 0.78 });
   M.lead = std({ color: 0x2b2b2b, roughness: 0.35, metalness: 0.35 });
   M.trace = std({ color: 0xe9e8e4, map: T.card, roughness: 0.82, transparent: true, opacity: 0.93 });
+  M.roll = std({ color: 0x8a8a8e, map: T.card, roughness: 0.84 });
   M.lamp = std({ color: 0x1b1c1f, roughness: 0.28, metalness: 0.76, envMapIntensity: 1.05 });
   M.lampRim = std({ color: 0x1b1c1f, roughness: 0.26, metalness: 0.76, envMapIntensity: 1.0, emissive: 0xfff0e2, emissiveIntensity: 0 }); // the lip of the shade, lit from inside
   M.lampInner = new THREE.MeshStandardMaterial({ color: 0xf4f3f0, roughness: 0.38, emissive: 0xfff1e4, emissiveIntensity: 0, side: THREE.BackSide });
@@ -332,14 +333,15 @@ export function contourLayers(M) {
   };
   const edge = (fn, t) => { const pts = [[BX0, BZ0]]; for (let z = BZ0; z <= BZ1 + 1e-6; z += 0.5) pts.push([Math.max(BX0 + 0.6, Math.min(BX1, fn(t, z))), +z.toFixed(2)]); pts.push([BX0, BZ1]); return pts; };
   layer(MAT_TOP, SITE.base - MAT_TOP, [[BX0, BZ0], [BX1, BZ0], [BX1, BZ1], [BX0, BZ1]]);
-  for (const t of LAYER_TOPS) layer(t - STEP, STEP, edge(Xof, t));
-  for (const t of UPPER_TOPS) layer(t - STEP, STEP, edge(Xup, t));
-  // where the house will stand, the top layer carries its footprint as a shallow dark cut. House and terrace cover it once they are down
+  const THICK = STEP * 2.2; // each sheet is thicker than the step it makes: floating, its dark core shows, and stacked the rest lies inside the sheet below
+  for (const t of LAYER_TOPS) layer(t - THICK, THICK, edge(Xof, t));
+  for (const t of UPPER_TOPS) layer(t - THICK, THICK, edge(Xup, t));
+  // where the house will stand, the top layer carries its outline as a scored line. The house covers it once it is down
   const seat = layers.find((l) => Math.abs(l.userData.top - G) < 1e-3);
   if (seat) {
-    const fp = new THREE.BoxGeometry(11.9, 0.012, 9.9); fp.translate(11, G + 0.006, -2);
-    const tp = new THREE.BoxGeometry(4.1, 0.012, 12.5); tp.translate(19.05, G + 0.006, -0.7);
-    seat.add(mesh(mergeGeometries([fp, tp]), M.burn, { cast: false }));
+    const strip = (x0, z0, x1, z1) => new THREE.BoxGeometry(x1 - x0, 0.012, z1 - z0).translate((x0 + x1) / 2, G + 0.006, (z0 + z1) / 2);
+    const w = 0.1;
+    seat.add(mesh(mergeGeometries([strip(5.05, -6.95, 16.95, -6.95 + w), strip(5.05, 2.95 - w, 16.95, 2.95), strip(5.05, -6.95, 5.05 + w, 2.95), strip(16.95 - w, -6.95, 16.95, 2.95)]), M.burn, { cast: false }));
   }
   return layers;
 }
@@ -447,9 +449,9 @@ export function deskProps(M) {
   const end = new THREE.CylinderGeometry(0.425, 0.425, 0.5, 6); end.rotateZ(Math.PI / 2); end.translate(7.3, 0, 0); pg.add(mesh(end, M.pencilStripe));
   const cone = new THREE.ConeGeometry(0.42, 2.2, 6); cone.rotateZ(Math.PI / 2); cone.translate(-8.6, 0, 0); pg.add(mesh(cone, M.wood));
   const tip = new THREE.ConeGeometry(0.12, 0.6, 8); tip.rotateZ(Math.PI / 2); tip.translate(-9.95, 0, 0); pg.add(mesh(tip, M.lead));
-  pg.position.set(-16, MAT_TOP + 0.42, 36); pg.rotation.y = -1.75; g.add(pg);
+  pg.position.set(30, MAT_TOP + 0.42, -31); pg.rotation.y = 0.5; g.add(pg); // behind the model, where no framing of the build cuts it off
   // two rolls: one lying at the back, one standing on its end (a tower, seen from eye height)
-  const roll = new THREE.CylinderGeometry(2.8, 2.8, 36, 40); roll.rotateZ(Math.PI / 2); roll.rotateY(0.5); roll.translate(-30, DESK_TOP + 2.8, -60); put(roll, M.trace);
+  const roll = new THREE.CylinderGeometry(2.8, 2.8, 36, 40); roll.rotateZ(Math.PI / 2); roll.rotateY(0.5); roll.translate(-30, DESK_TOP + 2.8, -60); put(roll, M.roll); // grey, so the white model stands clear of it
   const core = new THREE.CylinderGeometry(1.1, 1.1, 36.4, 24); core.rotateZ(Math.PI / 2); core.rotateY(0.5); core.translate(-30, DESK_TOP + 2.8, -60); put(core, M.wood);
   const stand = new THREE.CylinderGeometry(3.1, 3.1, 46, 44); stand.translate(-58, DESK_TOP + 23, 12); put(stand, M.trace);
   const standCore = new THREE.CylinderGeometry(1.2, 1.2, 46.2, 24); standCore.translate(-58, DESK_TOP + 23.05, 12); put(standCore, M.wood);
@@ -479,8 +481,6 @@ export function deskProps(M) {
   off(52, 6, 14, 6.4, 0.3, [[-5.5, -1.6, 2.2, 3.0], [-2.4, -1.6, 2.2, 3.0], [0.7, -1.6, 2.2, 3.0]]);
   off(58, -8, 9, 4, -0.5, []);
   off(46, -18, 3.2, 12, 0.15, [[-0.9, -4, 1.8, 2.6]]);
-  // a roll of red tape by the offcuts
-  put(new THREE.LatheGeometry([[1.9, 0], [2.6, 0], [2.6, 1.8], [1.9, 1.8], [1.9, 0]].map(([x, y]) => new THREE.Vector2(x, y)), 56).translate(55.5, MAT_TOP, 0.5), M.pin);
   // the lamp
   const lamp = buildLamp(M, LAMP);
   g.add(lamp.group);

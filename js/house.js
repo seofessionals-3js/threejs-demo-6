@@ -172,7 +172,7 @@ export function houseParts(rnd = makeRnd(11)) {
 export const PEOPLE = [[19.6, 0, -3.4, -1.2], [17.7, L1, -4.4, -0.3], [1.2, null, -1.1, 2.6], [27.2, null, -4.6, 0.9]];
 // trees, [kind, x, z]: a red maple by the house and one in the garden, a row of poplars behind, round crowns between
 export const TREES = [
-  ['maple', 14.8, 7.6], ['maple', 26.5, 11.8],
+  ['maple', 14.8, 7.6], ['maple', 31, 12.6],
   ['poplar', -9.5, -15], ['poplar', -6, -15.9], ['poplar', -2.5, -16.5], ['poplar', 1, -16.9], ['poplar', 4.5, -17.1],
   ['round', 26.5, -12.5], ['round', 31.5, -9.2], ['round', 36.8, -13.6], ['round', 34.5, -8.8], ['round', 21.5, 12.6], ['round', 19.2, 8.8],
   ['round', -8.5, 6.5], ['round', -3.5, 10.5], ['round', -10.5, -3.8], ['poplar', 37.5, -3.4], ['round', 22.5, -10.5],

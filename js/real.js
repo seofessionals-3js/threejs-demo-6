@@ -238,7 +238,7 @@ function makeTextures() {
   T.art = canvasTex(1024, 683, (g, w, h) => {
     g.fillStyle = '#eceae6'; g.fillRect(0, 0, w, h); blotches(g, w, 40, 'rgba(142,142,144,0.06)', 30, 160);
     g.fillStyle = '#e5202e'; g.beginPath(); g.arc(w * 0.62, h * 0.27, h * 0.2, 0, 7); g.fill();
-    g.strokeStyle = '#131315'; g.lineWidth = 26; g.beginPath(); g.arc(w * 0.34, h * 1.18, h * 0.62, Math.PI * 1.22, Math.PI * 1.86); g.stroke();
+    g.strokeStyle = '#7c7c80'; g.lineWidth = 16; g.beginPath(); g.arc(w * 0.34, h * 1.18, h * 0.62, Math.PI * 1.22, Math.PI * 1.86); g.stroke();
     g.fillStyle = 'rgba(36,36,38,0.85)'; g.fillRect(w * 0.12, h * 0.18, w * 0.05, h * 0.5);
     grain(g, w, h, 14);
   });
@@ -542,7 +542,7 @@ export function staging(R, Mcard) {
   lathe([[0, 0], [0.07, 0], [0.11, 0.1], [0.09, 0.2], [0.05, 0.24], [0, 0.24]], 28, R.charcoal, 13.98, 0.53, 2.5);
   box(13.1, 0.53, 2.32, 13.55, 0.59, 2.64, R.book1); box(13.14, 0.59, 2.34, 13.5, 0.64, 2.62, R.book2);
   // the painting, on the gallery wall where the tall glass shows it to the garden
-  box(11.75, 3.5, -1.33, 11.79, 5.6, 1.83, R.charcoal);
+  box(11.75, 3.53, -1.3, 11.79, 5.57, 1.8, R.charcoal);
   put(new THREE.PlaneGeometry(3.04, 1.99).rotateY(Math.PI / 2), R.art, 11.795, 4.55, 0.25, { cast: false });
   // the door to the rooms behind it
   box(11.75, L1, 1.95, 11.772, 5.25, 2.62, R.black); box(11.772, L1 + 1.0, 2.0, 11.8, L1 + 1.04, 2.14, R.chrome);

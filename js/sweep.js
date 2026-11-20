@@ -12,7 +12,7 @@ import * as THREE from 'three';
 export const SWEEP = {
   C: { value: new THREE.Vector3() },   // centre: the lamp's bulb
   R: { value: 0 },                     // radius of the front
-  W: { value: 0.20 },                  // width of the red line
+  W: { value: 0.07 },                  // width of the red line
   glow: { value: 0 },
   col: { value: new THREE.Color(1.55, 0.09, 0.13) },
 };
@@ -50,9 +50,11 @@ const CUT = (side) => `
 ${MAP_D}
 ${side === 'card' ? 'if ( uSeamK > 0.0 && sweepD < uSweepR ) discard;' : 'if ( sweepD > uSweepR ) discard;'}
 float dSeam = abs( sweepD - uSweepR );
-// close to the lens the line is drawn fine: where the front runs nearly along a slope it would otherwise flood it
-float sweepWv = uSweepW * mix( 0.22, 1.0, smoothstep( 3.0, 24.0, distance( vSweepW, cameraPosition ) ) );
-float coreLine = exp( -pow( dSeam / sweepWv, 2.0 ) );
+// the front is a fine line with a narrow grid behind it, finer still close to the lens: where it runs nearly along a slope, a wide band would flood the ground
+float sweepFar = smoothstep( 2.0, 8.0, distance( vSweepW, cameraPosition ) );
+float sweepWv = uSweepW * mix( 0.3, 1.0, smoothstep( 5.0, 25.0, distance( vSweepW, cameraPosition ) ) );
+float sweepThin = 1.0 - smoothstep( 1.0, 2.6, dSeam / max( fwidth( sweepD ), 1e-5 ) ); // never less than a line a few pixels wide
+float coreLine = max( sweepThin, exp( -pow( dSeam / sweepWv, 2.0 ) ) );
 float echoLine = 0.36 * exp( -pow( ( dSeam - sweepWv * 2.6 ) / ( sweepWv * 0.75 ), 2.0 ) );
 float softBand = 0.03 * exp( -pow( dSeam / ( sweepWv * 4.5 ), 2.0 ) );
 float gridEnv = exp( -pow( dSeam / ( sweepWv * 24.0 ), 1.6 ) );
@@ -63,7 +65,6 @@ float cX = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.x + 0.5 ) - 0.5 ) )
 float cZ = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.z + 0.5 ) - 0.5 ) );
 float cadGrid = max( cY * 0.8, max( cX, cZ ) * 0.6 ) * gridEnv * ${side === 'real' ? '1.0' : '0.22'}; // the grid belongs to what has just been scanned
 float sweepFade = uSweepGlow * uSeamK * smoothstep( 98.0, 72.0, compSweepD );
-float sweepFar = smoothstep( 3.0, 11.0, distance( vSweepW, cameraPosition ) ); // close to the lens only the line itself is drawn
 float sweepSeam = sweepFade * ( coreLine * 1.15 + ( echoLine + softBand + cadGrid ) * sweepFar );
 float sweepCore = sweepFade * coreLine;
 `;

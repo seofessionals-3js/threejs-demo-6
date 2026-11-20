@@ -204,9 +204,9 @@ const EYE_Y = GARDEN + 1.62; // eye height over the ground the little figure sta
 const KEYS = {
   desk: {
     pre:  { p: V(110, 47, 94), t: V(14.5, -1.6, -2.2), f: 30 },
-    hero: { p: V(67, 25.8, 54.3), t: V(7.5, -2.0, 0.2), f: 27.8, fp: V(13, 1, -1), ap: 0.00028, mb: 0.009 },
+    hero: { p: V(76.3, 29.7, 60.8), t: V(8.5, -2.0, -0.9), f: 27.8, fp: V(13, 1, -1), ap: 0.00028, mb: 0.009 },
     path: [
-      { p: V(67, 25.8, 54.3), t: V(7.5, -2.0, 0.2) },
+      { p: V(76.3, 29.7, 60.8), t: V(8.5, -2.0, -0.9) },
       { p: V(56, 14.5, 39), t: V(8, -0.2, -0.6) },
       { p: V(49.5, 4.6, 17), t: V(10.5, 2.0, -7.5) },
       { p: V(46.5, 0.6, 10.5), t: V(11, 2.4, -4.6) },
@@ -243,22 +243,22 @@ const WALK = [
   { p: V(17.7, 1.67, 0.2), t: V(8.5, 2.2, -1.0) },
   { p: V(16.9, 1.68, 0.4), t: V(8.4, 1.2, -1.6) },        // through it
   { p: V(16.4, 1.72, 0.9), t: V(9.5, 0.25, -3.6) },       // holding just inside, turned across the room: sofa, table, kitchen, the bookcase at the far wall
-  { p: V(15.8, 3.0, 0.5), t: V(9.0, 3.6, -0.4) },         // rising through the void to the level of the gallery floor: the painting above it, the room below
+  { p: V(15.8, 3.0, 0.5), t: V(9.0, 4.2, -0.4) },         // rising through the void to the level of the gallery floor: the painting above it, the room below
   { p: V(15.2, 4.62, -0.9), t: V(13.6, 3.7, -5.0) },      // level with the gallery, turning to the study
   { p: V(14.9, 4.68, -2.4), t: V(14.0, 3.95, -5.2) },     // over the balustrade (its rail is at 4.20)
   { p: V(14.75, 4.45, -3.2), t: V(14.2, 3.95, -5.1) },    // to the long side of the desk
   { p: V(14.5, 4.25, -3.9), t: V(14.2, 3.97, -5.1) },     // close on the lit model, the pinned drawings behind it
   { p: V(15.2, 4.62, -3.7), t: V(12.3, 4.3, 1.4) },       // turning round by way of the void and the painting across it
-  { p: V(15.8, 4.75, -4.5), t: V(60.8, 1.6, -4.5) },       // and out through the study's own glass: the balcony, the garden, the dark room the desk stands in
+  { p: V(15.6, 4.74, -1.5), t: V(51.7, -1.5, 14.6) },       // and out through the study's own glass: the balcony, the garden, the dark room the desk stands in
 ];
 const WALK_DOOR = 4, WALK_HOLD = 7, WALK_RISE = 8, WALK_GAL = 9, WALK_DESK = 12; // the keys the walk is timed by
 const BACK = [
   WALK[WALK.length - 1],
-  { p: V(15.6, 4.74, -1.4), t: V(48, -1.0, 14) },         // back over the balustrade, still looking out
   { p: V(15.9, 3.3, -0.3), t: V(50, -1.5, 17) },          // down through the void
   { p: V(16.3, 2.05, 0.2), t: V(52, -2.2, 19) },
-  { p: V(18.1, 1.8, 0.35), t: V(56, -2.6, 21) },          // out through the door: the garden, the studio wall
-  { p: V(21.6, 2.3, 1.2), t: V(40, 0.6, 22) },            // across the terrace, starting to turn
+  { p: V(18.1, 1.8, 0.35), t: V(56, -2.6, 21) },          // out through the door
+  { p: V(20.4, 1.85, 3.9), t: V(45, -4.5, 12.0) },        // at the head of the garden steps: down them to the lawn, the mat, the studio wall
+  { p: V(23.2, 2.5, 3.2), t: V(24, 1.6, 20) },            // turning by way of the garden
   { p: V(25.2, 3.1, 0.2), t: V(13, 2.7, -1.7) },          // turned round: the whole front of the house
   { p: V(30, 5.6, 5.0), t: V(12.2, 2.3, -2.0) },          // pulling back, facing the house
   { p: V(44, 15, 24.5), t: V(10, 0.6, -1.6) },
