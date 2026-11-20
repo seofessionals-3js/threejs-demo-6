@@ -38,7 +38,7 @@ body.locked { overflow: hidden; }
 .brand::before { content: '[ '; color: var(--accent); }
 .brand::after { content: ' // CAD.11 ]'; color: var(--accent); font-weight: 500; font-size: 11px; }
 
-.top nav { display: flex; gap: 34px; font: 500 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.top nav { display: flex; gap: 34px; font: 500 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: rgba(241, 238, 234, 0.86); padding: 8px 16px; background: rgba(12, 12, 14, 0.62); }
 .cta {
   font: 600 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
   background: var(--paper); color: var(--ink);
@@ -50,6 +50,16 @@ body.locked { overflow: hidden; }
 .hero h1 { margin: 0; font: 600 64px/0.98 var(--display); letter-spacing: -.01em; text-transform: uppercase; }
 .hero .ln { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
 .hero .ln > span { display: inline-block; transform: translate3d(0, 125%, 0); opacity: 0; will-change: transform; }
+/* every line of overlay type sits on its own dark plate, so it reads on white card as well as on black */
+.hero .ln > span,
+.turn-line .ln > span,
+.end h2 .ln > span,
+.drift > span,
+.back-line > span {
+  background: rgba(10, 10, 12, 0.78);
+  padding: 0.02em 10px 0;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
 .hero .accent > span,
 .turn-line .accent > span,
 .end h2 .accent > span,
@@ -57,11 +67,11 @@ body.locked { overflow: hidden; }
 .back-line em {
   font-style: normal;
   color: #ff4d57;
-  background: rgba(229, 32, 46, 0.16);
-  padding: 0 8px;
+  background: rgba(10, 10, 12, 0.86);
+  padding: 0.02em 10px 0;
   border-left: 3px solid var(--accent);
 }
-.hero .sub { margin: 22px 0 0 2px; max-width: 340px; font: 500 10.5px/1.65 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--dim); opacity: 0; }
+.hero .sub { margin: 18px 0 0 0; max-width: 340px; font: 500 10.5px/1.65 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: rgba(241, 238, 234, .92); opacity: 0; background: rgba(10, 10, 12, .78); padding: 9px 12px; border-left: 2px solid var(--accent); text-shadow: none; }
 
 .hint {
   position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
@@ -160,13 +170,13 @@ body.locked { overflow: hidden; }
   position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
   display: flex; flex-direction: column; justify-content: center;
   padding: 0 28px 4vh;
-  background: radial-gradient(95% 85% at 14% 58%, rgba(6, 6, 8, .64), rgba(6, 6, 8, 0) 58%);
+  background: radial-gradient(105% 95% at 12% 58%, rgba(6, 6, 8, .86), rgba(6, 6, 8, .5) 46%, rgba(6, 6, 8, 0) 72%);
 }
 .end.live { pointer-events: auto; }
-.end .eyebrow { margin: 0 0 20px 2px; font: 600 10.5px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: #ff4d57; display: flex; align-items: center; gap: 12px; }
+.end .eyebrow { margin: 0 0 16px 0; align-self: flex-start; font: 600 10.5px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: #ff4d57; display: flex; align-items: center; gap: 12px; background: rgba(10, 10, 12, .86); padding: 7px 12px; border-left: 2px solid var(--accent); }
 .end .eyebrow i { display: inline-block; width: 26px; height: 1.5px; background: var(--accent); }
 .end h2 { margin: 0; font: 600 clamp(42px, 5.2vw, 86px)/0.98 var(--display); letter-spacing: -.01em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 2px 40px rgba(6, 6, 8, .55); }
-.end .lede { margin: 24px 0 0 2px; max-width: 420px; font: 500 10.5px/1.7 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: rgba(241, 238, 234, .86); }
+.end .lede { margin: 20px 0 0 0; max-width: 420px; font: 500 10.5px/1.7 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: rgba(241, 238, 234, .92); background: rgba(10, 10, 12, .78); padding: 9px 12px; }
 .end .ctas { display: flex; gap: 12px; margin-top: 26px; }
 .end .btn {
   font: 600 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;

@@ -16,7 +16,7 @@ export const L1 = 3.1;   // the upper floor
 export const TOP = 5.9;  // underside of the roof
 // the big door: two glass leaves that part in the middle, each sliding by `slide`
 export const DOOR = { x: 17.0, z0: -1.3, zm: 0.2, z1: 1.7, h: 2.6, slide: 1.0 };
-// the garden steps, from the terrace down to where the little figure stands
+// the garden steps, from the terrace down to where the little figure stands, a low kerb on either side
 export const STEPS = { x0: 21.75, run: 0.75, rise: 0.2, n: 14, z0: 3.6, z1: 5.2 };
 
 export function houseParts(rnd = makeRnd(11)) {
@@ -54,22 +54,25 @@ export function houseParts(rnd = makeRnd(11)) {
   box(17, G, -7, 21.2, 0, 5.6, { all: 'conc', top: 'pave' }, 'struct', 3);
   for (let k = 0; k < STEPS.n; k++) {
     const top = G - STEPS.rise * k + 0.03, x0 = k === 0 ? 21.2 : STEPS.x0 + k * STEPS.run;
-    box(x0, top - 0.45, STEPS.z0, STEPS.x0 + (k + 1) * STEPS.run + 0.02, top, STEPS.z1, 'pave', 'struct', 3);
+    const x1 = STEPS.x0 + (k + 1) * STEPS.run + 0.02;
+    box(x0, top - 0.45, STEPS.z0, x1, top, STEPS.z1, 'pave', 'struct', 3);
+    box(x0, top - 0.45, STEPS.z0 - 0.16, x1, top + 0.16, STEPS.z0, 'pave', 'struct', 3);
+    box(x0, top - 0.45, STEPS.z1, x1, top + 0.16, STEPS.z1 + 0.16, 'pave', 'struct', 3);
   }
   // the upper floor: everything but the void over the living room and the stair hole
   const SU = { all: 'plaster', top: 'oakD', bot: 'plaster' };
   box(5.3, 2.8, -6.7, 16.7, L1, -2.2, SU, 'struct', 5);
-  box(5.3, 2.8, -2.2, 12.6, L1, 1.7, SU, 'struct', 5);
-  box(10.5, 2.8, 1.7, 12.6, L1, 2.7, SU, 'struct', 5);
-  box(5.3, 2.8, 1.7, 5.7, L1, 2.7, SU, 'struct', 5);
+  box(5.3, 2.8, -2.23, 12.6, L1, 1.7, SU, 'struct', 5);      // each piece reaches 3 cm into its neighbour:
+  box(10.5, 2.8, 1.67, 12.6, L1, 2.7, SU, 'struct', 5);      // no light leaks along the joints
+  box(5.3, 2.8, 1.67, 5.7, L1, 2.7, SU, 'struct', 5);
   box(16.7, 2.8, -6.7, 18.4, L1, -2.2, { all: 'plaster', top: 'pave', bot: 'plaster' }, 'struct', 5); // the balcony of the study
   // the roof, with a rooflight over the void, and its parapet
   const RF = { all: 'plaster', top: 'gravel', bot: 'plaster' };
   const RL = [13.4, 15.9, -1.3, 1.8];
   box(5, TOP, -7, RL[0], 6.2, 3, RF, 'struct', 6);
   box(RL[1], TOP, -7, 18.4, 6.2, 3, RF, 'struct', 6);
-  box(RL[0], TOP, -7, RL[1], 6.2, RL[2], RF, 'struct', 6);
-  box(RL[0], TOP, RL[3], RL[1], 6.2, 3, RF, 'struct', 6);
+  box(RL[0] - 0.03, TOP, -7, RL[1] + 0.03, 6.2, RL[2], RF, 'struct', 6);   // these two reach 3 cm under their neighbours:
+  box(RL[0] - 0.03, TOP, RL[3], RL[1] + 0.03, 6.2, 3, RF, 'struct', 6);    // no light leaks along the joints
   box(5, 6.2, -7, 18.4, 6.5, -6.8, 'plaster', 'struct', 6); box(5, 6.2, 2.8, 18.4, 6.5, 3, 'plaster', 'struct', 6);
   box(5, 6.2, -6.8, 5.2, 6.5, 2.8, 'plaster', 'struct', 6); box(18.2, 6.2, -6.8, 18.4, 6.5, 2.8, 'plaster', 'struct', 6);
   box(RL[0] - 0.1, 6.2, RL[2] - 0.1, RL[1] + 0.1, 6.42, RL[2], 'steel', 'frame', 7); box(RL[0] - 0.1, 6.2, RL[3], RL[1] + 0.1, 6.42, RL[3] + 0.1, 'steel', 'frame', 7);
@@ -141,8 +144,10 @@ export function houseParts(rnd = makeRnd(11)) {
   // dining, under the study
   F(12.75, 0.72, -5.05, 15.55, 0.77, -3.95, 'black');
   for (const [lx, lz] of [[12.85, -4.95], [15.45, -4.95], [12.85, -4.05], [15.45, -4.05]]) F(lx - 0.03, 0, lz - 0.03, lx + 0.03, 0.72, lz + 0.03, 'black');
-  // kitchen: tall units on the north wall, a counter under the west window, an island
-  F(5.3, 0, -6.7, 5.95, 2.4, -2.4, 'black');
+  // kitchen: tall units on the north wall, a counter under the west window, an island.
+  // Beside the tall units an open bookcase for the living room (the staging fills it)
+  F(5.3, 0, -6.7, 5.95, 2.4, -4.45, 'black');
+  F(5.3, 0, -4.35, 5.68, 2.4, -2.35, 'black', { shelf: true });
   F(5.95, 0, -6.7, 10.9, 0.9, -6.08, 'black'); F(5.95, 0.9, -6.7, 10.92, 0.94, -6.04, 'stone');
   F(7.6, 0, -4.9, 10.4, 0.9, -3.95, 'black'); F(7.55, 0.9, -4.95, 10.45, 0.94, -3.9, 'stone');
   F(5.3, 0, 0.1, 5.75, 0.45, 1.5, 'black');
@@ -156,16 +161,16 @@ export function houseParts(rnd = makeRnd(11)) {
     while (z < -3.42) { const w = 0.03 + rnd() * 0.05, h = 0.22 + rnd() * 0.14; if (Math.abs(z + 4.9) > 0.08 && rnd() < 0.82) F(11.8, y + 0.028, z, 12.08, y + 0.028 + h, z + w, 'book' + Math.floor(rnd() * 5)); z += w + 0.005; }
   }
   // paving: the forecourt on the north side
-  box(-3.5, G, -3.6, 5.0, G + 0.03, 1.4, 'pave', 'land', 8);
+  box(0.4, G, -3.6, 5.0, G + 0.03, 1.4, 'pave', 'land', 8);
   return P;
 }
 
 // scale figures on the model, [x, y, z, rotation]; y null stands on the land
 export const PEOPLE = [[19.6, 0, -3.4, -1.2], [17.7, L1, -4.4, -0.3], [1.2, null, -1.1, 2.6], [27.2, null, -4.6, 0.9]];
-// trees, [kind, x, z]: a red maple by the house, a row of poplars behind it, round crowns in the garden
+// trees, [kind, x, z]: a red maple by the house and one in the garden, a row of poplars behind, round crowns between
 export const TREES = [
-  ['maple', 14.8, 7.6],
+  ['maple', 14.8, 7.6], ['maple', 30.5, 10.6],
   ['poplar', -9.5, -15], ['poplar', -6, -15.9], ['poplar', -2.5, -16.5], ['poplar', 1, -16.9], ['poplar', 4.5, -17.1],
-  ['round', 26.5, -12.5], ['round', 31.5, -9.2], ['round', 36.8, -13.6], ['round', 37.2, 11.2], ['round', 29.5, 11.6], ['round', 24, 10.4],
+  ['round', 26.5, -12.5], ['round', 31.5, -9.2], ['round', 36.8, -13.6], ['round', 33.4, 12.8], ['round', 25.5, 13.0], ['round', 22, 9.6],
   ['round', -8.5, 6.5], ['round', -3.5, 10.5], ['round', -10.5, -3.8], ['poplar', 37.5, -3.4], ['round', 22.5, -10.5],
 ];

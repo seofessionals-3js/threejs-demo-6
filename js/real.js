@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { houseParts, makeRnd, G, L1, STEPS } from './house.js';
-import { canvasTex, grain, blotches, worldUV, shiftZ, treeSpots, cardHouse, contourLayers, modelTrees, modelFigures, buildLamp, LAMP, sheetTexture, MAT_TOP, DESK_TOP, FALL, STEP, BENCH, SLOPE_X } from './desk.js';
+import { canvasTex, grain, blotches, worldUV, shiftZ, treeSpots, cardHouse, contourLayers, modelTrees, modelFigures, buildLamp, LAMP, sheetTexture, MAT_TOP, DESK_TOP, FALL, STEP, BENCH, SLOPE_X, RISE, RISE_X, RISE_BENCH, Xof, LAYER_TOPS } from './desk.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const rnd = makeRnd(71);
@@ -28,6 +28,7 @@ const fbm = (x, z) => { let s = 0, a = 0.5, f = 1; for (let i = 0; i < 5; i++) {
 export function landAt(x, z) {
   const u = x - shiftZ(z);
   let h = G - clamp((u - (SLOPE_X - BENCH / 2)) / (FALL / STEP * BENCH)) * FALL;   // the garden slope the layers were cut from
+  h += clamp((RISE_X - (x - 0.8 * shiftZ(z))) / (RISE / STEP * RISE_BENCH)) * RISE;   // behind the house it climbs again
   if (u > 38) h -= (u - 38) * 0.1 / (1 + (u - 38) / 40);                          // the lawn eases away past the edge of the board
   if (u < -14) h += Math.pow((-14 - u) / 44, 1.5) * 7;                            // the land behind keeps rising
   h += sstep(260, 720, u) * 70 * (0.6 + 0.8 * fbm(z * 0.004 + 3, u * 0.002));    // hills far off
@@ -35,7 +36,7 @@ export function landAt(x, z) {
   h += sstep(62, 170, r) * (fbm(x * 0.012, z * 0.012) - 0.45) * 14;               // the far land rolls
   // made ground: the terrace, the garden steps and the forecourt lie true
   const pad = (x0, x1, z0, z1, e) => sstep(x0 - e, x0, x) * (1 - sstep(x1, x1 + e, x)) * sstep(z0 - e, z0, z) * (1 - sstep(z1, z1 + e, z));
-  const made = Math.max(pad(4.4, 21.4, -7.6, 5.8, 0.6), pad(21.2, STEPS.x0 + STEPS.n * STEPS.run + 0.4, STEPS.z0 - 0.3, STEPS.z1 + 0.3, 0.4), pad(-3.7, 5, -3.8, 1.6, 0.5));
+  const made = Math.max(pad(4.4, 21.4, -7.6, 5.8, 0.6), pad(21.2, STEPS.x0 + STEPS.n * STEPS.run + 0.4, STEPS.z0 - 0.3, STEPS.z1 + 0.3, 0.4), pad(0.3, 5, -3.8, 1.6, 0.1));
   h += (fbm(x * 0.35, z * 0.35) - 0.5) * 0.12 * sstep(6, 14, r) * (1 - made);     // a little unevenness
   // a memory of the 0.4 m benches on the slope, so card and land rhyme during the turn
   const bench = Math.round((h - G) / STEP) * STEP + G;
@@ -117,6 +118,24 @@ function makeTextures() {
     grain(g, s, s, 14);
   }, { tile: 2.4 });
 
+  // Ground polished screed: clouds, fine aggregate, and a saw-cut joint every 2.4 m
+  T.screed = canvasTex(1024, 1024, (g, s) => {
+    g.fillStyle = '#8f8f94'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 70, 'rgba(170,170,176,0.10)', 60, 240);
+    blotches(g, s, 70, 'rgba(24,24,28,0.10)', 50, 220);
+    for (let i = 0; i < 9000; i++) { g.fillStyle = rnd() < 0.5 ? 'rgba(210,210,214,0.16)' : 'rgba(20,20,24,0.2)'; const r = 0.5 + rnd() * 1.3; g.fillRect(rnd() * s, rnd() * s, r, r); }
+    g.fillStyle = 'rgba(14,14,17,0.62)'; g.fillRect(0, 0, s, 2.2); g.fillRect(0, 0, 2.2, s);
+    g.fillStyle = 'rgba(190,190,196,0.2)'; g.fillRect(0, 2.2, s, 1.2); g.fillRect(2.2, 0, 1.2, s);
+    grain(g, s, s, 8);
+  }, { tile: 2.4 });
+  // White lime plaster: trowel clouds and a fine tooth
+  T.plaster = canvasTex(1024, 1024, (g, s) => {
+    g.fillStyle = '#f2f1ee'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 80, 'rgba(120,120,126,0.016)', 40, 200);
+    blotches(g, s, 60, 'rgba(255,255,255,0.06)', 30, 160);
+    for (let i = 0; i < 2600; i++) { g.strokeStyle = `rgba(${rnd() < 0.5 ? '90,90,96' : '255,255,255'},${0.03 + rnd() * 0.05})`; g.lineWidth = 0.6 + rnd(); const x = rnd() * s, y = rnd() * s, a = rnd() * 6.28, L = 10 + rnd() * 40; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); g.stroke(); }
+    grain(g, s, s, 7);
+  }, { tile: 2.0 });
   // Wide planks of black-stained oak, the grain a shade lighter, micro-bevel seams
   T.oak = canvasTex(1024, 1024, (g, s) => {
     const rows = 14, h = s / rows;
@@ -301,13 +320,13 @@ export function realMaterials(env) {
   const R = {
     T,
     conc: std({ map: T.conc, bumpMap: T.conc, bumpScale: 0.011, roughness: 0.84 }),
-    plaster: std({ color: 0xf1f0ed, roughness: 0.93 }),
-    floorD: std({ color: 0x5a5a5f, roughness: 0.4, envMapIntensity: 0.6 }),
+    plaster: std({ color: 0xffffff, map: T.plaster, bumpMap: T.plaster, bumpScale: 0.004, roughness: 0.93 }),
+    floorD: std({ color: 0xffffff, map: T.screed, bumpMap: T.screed, bumpScale: 0.002, roughness: 0.5, envMapIntensity: 0.5 }),
     oakD: std({ map: T.oak, bumpMap: T.oak, bumpScale: 0.005, roughness: 0.42 }),
-    desk: std({ map: T.deskOak, bumpMap: T.deskOak, bumpScale: 0.004, roughness: 0.36, envMapIntensity: 0.65 }),
+    desk: std({ map: T.deskOak, bumpMap: T.deskOak, bumpScale: 0.004, roughness: 0.5, envMapIntensity: 0.28 }),
     gravel: std({ color: 0x77777b, roughness: 0.98 }),
     pave: std({ map: T.pave, bumpMap: T.pave, bumpScale: 0.008, roughness: 0.78 }),
-    steel: std({ color: 0x151517, metalness: 0.68, roughness: 0.36, envMapIntensity: 0.85 }),
+    steel: std({ color: 0x151517, metalness: 0.5, roughness: 0.5, envMapIntensity: 0.6 }),
     red: std({ color: 0xc8121f, metalness: 0.2, roughness: 0.34, envMapIntensity: 0.8 }),
     glass: new THREE.MeshPhysicalMaterial({
       color: 0x1a1d22,
@@ -330,10 +349,12 @@ export function realMaterials(env) {
     curtain: new THREE.MeshStandardMaterial({ color: 0xf2f1ee, roughness: 0.92, transparent: true, opacity: 0.76, side: THREE.DoubleSide }),
     stone: std({ color: 0xdedddb, roughness: 0.28, envMapIntensity: 0.6 }),
     white: std({ color: 0xf5f4f2, roughness: 0.24 }),
-    shade: std({ color: 0xfffaf2, emissive: 0xfff0e0, emissiveIntensity: 0.52, roughness: 0.75, side: THREE.DoubleSide }),
+    shade: std({ color: 0xd9d6d0, emissive: 0xfff0e0, emissiveIntensity: 0.42, roughness: 0.75, side: THREE.DoubleSide }),
+    shadeDim: std({ color: 0x8c8a86, emissive: 0xfff0e0, emissiveIntensity: 0.2, roughness: 0.8, side: THREE.DoubleSide }), // the standing lamps, which the sun reaches too
     leaf: patchFoliage(std({ color: 0x5b5d60, roughness: 0.78, envMapIntensity: 0.22 }), [0.10, 0.10, 0.11]),
-    leafDS: std({ color: 0x484a4d, roughness: 0.52, side: THREE.DoubleSide, envMapIntensity: 0.4 }),
+    leafDS: std({ color: 0x8a8c90, roughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.35 }),
     leafDark: patchFoliage(std({ color: 0x353638, roughness: 0.82, envMapIntensity: 0.18 }), [0.06, 0.06, 0.07]),
+    tuft: patchFoliage(std({ color: 0x4b4c4f, roughness: 0.88, envMapIntensity: 0.12 }), [0.012, 0.012, 0.013]), // grass: no glow against the light
     maple: patchFoliage(std({ color: 0xb3141f, roughness: 0.72, envMapIntensity: 0.22 }), [0.30, 0.03, 0.04]),
     bark: std({ map: T.bark, bumpMap: T.bark, bumpScale: 0.015, roughness: 0.92 }),
     land: patchLand(std({ map: T.grass, vertexColors: true, roughness: 0.96, envMapIntensity: 0.25 })),
@@ -466,9 +487,9 @@ export function staging(R, Mcard) {
   // 2. The living room, under the void
   // floor lamp by the sideboard
   put(new THREE.CylinderGeometry(0.014, 0.014, 1.52, 10), R.chrome, 14.82, 0.76, 2.4);
-  put(new THREE.CylinderGeometry(0.16, 0.26, 0.32, 28, 1, true), R.shade, 14.82, 1.55, 2.4, { cast: false });
+  put(new THREE.CylinderGeometry(0.16, 0.26, 0.32, 28, 1, true), R.shadeDim, 14.82, 1.55, 2.4, { cast: false });
   put(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 24), R.steel, 14.82, 0.01, 2.4);
-  lights.push([14.82, 1.45, 2.3, 4.0, 0]);
+  lights.push([14.55, 1.25, 2.0, 3.2, 0]); // beside and below the shade: inside it, the shade would burn out
   // cushions on the sofa, a red throw over its arm
   rbox(0.62, 0.5, 0.18, 0.35, R.linen, 13.5, 0.78, -1.6, 0, -0.25);
   rbox(0.58, 0.48, 0.18, 0.35, R.redC, 14.15, 0.77, -1.58, 0.12, -0.28);
@@ -496,19 +517,29 @@ export function staging(R, Mcard) {
   box(13.82, 0.36, -0.62, 14.27, 0.41, -0.27, R.book2); box(13.85, 0.41, -0.59, 14.22, 0.45, -0.29, R.book4); box(13.88, 0.45, -0.57, 14.19, 0.48, -0.32, R.book0);
   lathe([[0, 0], [0.12, 0.005], [0.18, 0.06], [0.2, 0.09], [0.185, 0.09], [0.165, 0.05], [0, 0.04]], 32, R.charcoal, 14.86, 0.36, -0.3);
   lathe([[0, 0], [0.07, 0], [0.1, 0.08], [0.09, 0.22], [0.045, 0.32], [0.05, 0.36], [0.04, 0.36], [0, 0.34]], 28, R.ceramic, 14.56, 0.36, -0.52);
-  for (let i = 0; i < 6; i++) {
-    const L = 0.6 + rnd() * 0.35, a = i * 1.05, t = 0.18 + rnd() * 0.12;
-    const b = new THREE.CylinderGeometry(0.004, 0.006, L, 5); b.translate(0, L / 2, 0); b.rotateZ(Math.cos(a) * t); b.rotateX(Math.sin(a) * t); put(b, R.bark, 14.56, 0.68, -0.52);
-    for (let k = 0; k < 7; k++) {
-      const lf = new THREE.SphereGeometry(0.032, 6, 4); lf.scale(0.8, 0.32, 1.65);
-      const h = L * (0.4 + k * 0.08);
-      put(lf, R.maple, 14.56 + Math.sin(Math.cos(a) * t) * -h + (rnd() - 0.5) * 0.05, 0.68 + h, -0.52 + Math.sin(Math.sin(a) * t) * h + (rnd() - 0.5) * 0.05, { cast: false });
+  // between the door and the kitchen, where the room is widest: a round table on a round rug, maple boughs in a tall vessel
+  {
+    const hx = 9.5, hz = -0.5, top = 0.74;
+    put(new THREE.CylinderGeometry(1.75, 1.75, 0.014, 64), R.rugD, hx, 0.007, hz, { cast: false });
+    put(new THREE.CylinderGeometry(0.68, 0.68, 0.035, 56), R.black, hx, top - 0.0175, hz);
+    lathe([[0, 0], [0.34, 0], [0.36, 0.03], [0.09, 0.07], [0.06, 0.4], [0.1, 0.66], [0.3, top - 0.035], [0, top - 0.035]], 40, R.black, hx, 0, hz);
+    lathe([[0, 0], [0.1, 0], [0.16, 0.14], [0.15, 0.36], [0.07, 0.5], [0.08, 0.56], [0.065, 0.56], [0, 0.52]], 32, R.ceramic, hx - 0.1, top, hz + 0.08);
+    for (let i = 0; i < 9; i++) {
+      const L = 0.95 + rnd() * 0.55, a = i * 0.71, t = 0.2 + rnd() * 0.22;
+      const b = new THREE.CylinderGeometry(0.005, 0.008, L, 5); b.translate(0, L / 2, 0); b.rotateZ(Math.cos(a) * t); b.rotateX(Math.sin(a) * t); put(b, R.bark, hx - 0.1, top + 0.5, hz + 0.08);
+      for (let k = 0; k < 11; k++) {
+        const lf = new THREE.SphereGeometry(0.045, 6, 4); lf.scale(0.8, 0.32, 1.65); lf.rotateY(rnd() * 3.1);
+        const h = L * (0.34 + k * 0.064);
+        put(lf, R.maple, hx - 0.1 + Math.sin(Math.cos(a) * t) * -h + (rnd() - 0.5) * 0.09, top + 0.5 + h * Math.cos(t), hz + 0.08 + Math.sin(Math.sin(a) * t) * h + (rnd() - 0.5) * 0.09);
+      }
     }
+    box(hx + 0.12, top, hz - 0.36, hx + 0.5, top + 0.045, hz - 0.08, R.book2); box(hx + 0.15, top + 0.045, hz - 0.33, hx + 0.46, top + 0.08, hz - 0.1, R.book0);
+    lathe([[0, 0], [0.1, 0.005], [0.15, 0.05], [0.14, 0.06], [0, 0.03]], 28, R.stone, hx + 0.22, top, hz + 0.3);
   }
   // on the sideboard: two vessels and books
-  lathe([[0, 0], [0.09, 0], [0.13, 0.12], [0.12, 0.3], [0.06, 0.42], [0.065, 0.48], [0, 0.48]], 28, R.ceramic, 13.3, 0.53, 2.47);
-  lathe([[0, 0], [0.07, 0], [0.11, 0.1], [0.09, 0.2], [0.05, 0.24], [0, 0.24]], 28, R.charcoal, 13.62, 0.53, 2.5);
-  box(13.95, 0.53, 2.32, 14.4, 0.59, 2.64, R.book1); box(13.99, 0.59, 2.34, 14.35, 0.64, 2.62, R.book2);
+  lathe([[0, 0], [0.09, 0], [0.13, 0.12], [0.12, 0.3], [0.06, 0.42], [0.065, 0.48], [0, 0.48]], 28, R.ceramic, 14.3, 0.53, 2.47);
+  lathe([[0, 0], [0.07, 0], [0.11, 0.1], [0.09, 0.2], [0.05, 0.24], [0, 0.24]], 28, R.charcoal, 13.98, 0.53, 2.5);
+  box(13.1, 0.53, 2.32, 13.55, 0.59, 2.64, R.book1); box(13.14, 0.59, 2.34, 13.5, 0.64, 2.62, R.book2);
   // the painting, on the gallery wall where the tall glass shows it to the garden
   box(11.75, 3.5, -1.33, 11.79, 5.6, 1.83, R.charcoal);
   put(new THREE.PlaneGeometry(3.04, 1.99).rotateY(Math.PI / 2), R.art, 11.795, 4.55, 0.25, { cast: false });
@@ -573,6 +604,44 @@ export function staging(R, Mcard) {
   lathe([[0, 0], [0.12, 0], [0.16, 0.05], [0, 0.04]], 24, R.ceramic, 9.9, 0.94, -4.3);
   lathe([[0, 0], [0.06, 0], [0.085, 0.1], [0.06, 0.22], [0.03, 0.26], [0, 0.26]], 22, R.charcoal, 6.6, 0.94, -6.36);
   box(9.6, 0.94, -6.5, 10.3, 0.98, -6.2, R.black);
+  // the bookcase on the north wall: books in clusters and stacks, and between them five kinds of object
+  {
+    let obj = 0;
+    for (const y of [0.08, 0.5, 0.92, 1.34, 1.76]) {
+      let z = -4.28;
+      while (z < -2.44) {
+        if (Math.abs(z + 3.35) < 0.1) { z += 0.14; continue; } // the divider in the middle
+        const mode = rnd();
+        if (mode < 0.66) {
+          const count = 4 + Math.floor(rnd() * 4);
+          for (let b = 0; b < count && z < -2.47; b++) {
+            const w = 0.026 + rnd() * 0.038, h = 0.2 + rnd() * 0.14, d = 0.22 + rnd() * 0.08;
+            if (Math.abs(z + w / 2 + 3.35) < 0.06) { z += 0.1; continue; }
+            box(5.34, y, z, 5.34 + d, y + h, z + w, R['book' + Math.floor(rnd() * 5)]);
+            z += w + 0.004;
+          }
+          z += 0.06;
+        } else if (mode < 0.82) {
+          const w = 0.24 + rnd() * 0.06;
+          if (z + w < -2.44 && Math.abs(z + w / 2 + 3.35) > 0.2) {
+            let sy = y;
+            for (let s = 0; s < 3; s++) { const bh = 0.032 + rnd() * 0.015; box(5.36, sy, z, 5.66, sy + bh, z + w - s * 0.015, R['book' + ((obj + s) % 5)]); sy += bh + 0.002; }
+          }
+          z += w + 0.1;
+        } else {
+          const kind = obj++ % 5, cz = z + 0.12;
+          if (Math.abs(cz + 3.35) > 0.16 && cz < -2.5) {
+            if (kind === 0) lathe([[0, 0], [0.06, 0], [0.095, 0.09], [0.07, 0.22], [0.035, 0.26], [0, 0.26]], 22, R.redC, 5.52, y, cz);
+            else if (kind === 1) lathe([[0, 0], [0.09, 0.01], [0.12, 0.06], [0.1, 0.08], [0, 0.03]], 24, R.stone, 5.52, y, cz);
+            else if (kind === 2) { box(5.44, y, cz - 0.06, 5.6, y + 0.04, cz + 0.06, R.charcoal); put(new THREE.SphereGeometry(0.055, 18, 12), R.chrome, 5.52, y + 0.095, cz); }
+            else if (kind === 3) lathe([[0, 0], [0.05, 0], [0.07, 0.14], [0.065, 0.28], [0.03, 0.31], [0, 0.31]], 20, R.charcoal, 5.52, y, cz);
+            else lathe([[0, 0], [0.055, 0], [0.08, 0.08], [0.05, 0.19], [0, 0.19]], 20, R.ceramic, 5.52, y, cz);
+          }
+          z += 0.28;
+        }
+      }
+    }
+  }
   // the handrail up the stair wall
   {
     const rail = new THREE.CylinderGeometry(0.018, 0.018, 5.72, 10);
@@ -590,7 +659,7 @@ export function staging(R, Mcard) {
     for (const dx of [-w * 0.42, w * 0.42]) put(new THREE.SphereGeometry(0.012, 8, 6), R.red, 13.2 + i * 0.86 + dx, 4.42 + (i % 2) * 0.05 + w / 2.828 - 0.03, -6.658, { cast: false });
   });
   // a basket of rolled drawings by the bookcase
-  const bx = 12.08, bz = -2.92;
+  const bx = 12.62, bz = -5.75;
   lathe([[0, 0], [0.17, 0], [0.19, 0.46], [0.18, 0.46], [0.16, 0.02], [0, 0.02]], 28, R.basket, bx, L1, bz);
   for (let i = 0; i < 6; i++) {
     const L = 0.68 + rnd() * 0.26, a = i * 1.08, r = 0.026 + (i % 2) * 0.006;
@@ -606,36 +675,36 @@ export function staging(R, Mcard) {
     put(band, R.red, rx, ry, rz);
   }
   // a tree in a pot by the balustrade, a chair to read in by the balcony glass, its lamp
-  plant(16.3, L1, -3.7, 0.2, 1.05, [[0, 0, 0, 0.4, 0.5, 0.4, 140]], R.leaf, R.ceramic);
+  plant(17.75, L1, -6.1, 0.2, 1.05, [[0, 0, 0, 0.4, 0.5, 0.4, 140]], R.leaf, R.ceramic); // out on the balcony, clear of the view
   rbox(0.82, 0.42, 0.84, 0.18, R.linen, 15.95, L1 + 0.21, -6.0);
   rbox(0.82, 0.54, 0.22, 0.22, R.linen, 15.95, L1 + 0.68, -6.32, 0, 0.12);
   rbox(0.14, 0.26, 0.82, 0.2, R.linen, 15.59, L1 + 0.52, -6.0);
   rbox(0.14, 0.26, 0.82, 0.2, R.linen, 16.31, L1 + 0.52, -6.0);
   rbox(0.48, 0.38, 0.15, 0.35, R.redC, 15.95, L1 + 0.62, -6.14, 0, 0.2);
   put(new THREE.CylinderGeometry(0.012, 0.012, 1.45, 8), R.chrome, 16.5, L1 + 0.72, -5.3);
-  put(new THREE.CylinderGeometry(0.13, 0.2, 0.26, 24, 1, true), R.shade, 16.5, L1 + 1.5, -5.3, { cast: false });
+  put(new THREE.CylinderGeometry(0.13, 0.2, 0.26, 24, 1, true), R.shadeDim, 16.5, L1 + 1.5, -5.3, { cast: false });
   lights.push([16.4, L1 + 1.42, -5.35, 2.0, 0]);
   // the desk: a rug, the chair pushed aside so the view to the model is open
   box(12.6, L1, -6.05, 16.0, L1 + 0.01, -3.55, R.rug, { cast: false });
-  addChair(13.62, L1, -4.2, -0.42, R.leather);
+  addChair(13.75, L1, -4.05, -0.5, R.leather);
 
   // the lamp on the model's own desk is switched on
-  if (Mcard.bulb) { Mcard.bulb.emissiveIntensity = 0.42; }
-  if (Mcard.lampInner) { Mcard.lampInner.emissiveIntensity = 0.2; }
-  if (Mcard.lampRim) { Mcard.lampRim.emissiveIntensity = 0.4; }
+  if (Mcard.bulb) { Mcard.bulb.emissiveIntensity = 0.3; }
+  if (Mcard.lampInner) { Mcard.lampInner.emissiveIntensity = 0.12; Mcard.lampInner.color.setHex(0x8f8f92); }
+  if (Mcard.lampRim) { Mcard.lampRim.emissiveIntensity = 0.25; }
 
   // the desk set: mat, model, lamp, rule and pencil, built round the middle of the mat and then turned to face the room
   const desk = new THREE.Group();
   const DT = 3.87;
-  desk.position.set(14.25, DT, -5.1); desk.rotation.y = -1.16;
+  desk.position.set(14.2, DT, -5.1); desk.rotation.y = -0.6;
   const mat = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.003, 0.5), Mcard.mat);
   mat.position.set(0, 0.0015, 0);
   desk.add(mat);
   const miniRule = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.0012, 0.028), Mcard.rule || R.steel);
   miniRule.position.set(0.04, 0.0036, 0.3); miniRule.rotation.y = 0.05;
   desk.add(miniRule);
-  const miniPencil = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.17, 6).rotateZ(Math.PI / 2), R.red);
-  miniPencil.position.set(0.42, 0.004, 0.16); miniPencil.rotation.y = -0.38;
+  const miniPencil = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.17, 6).rotateZ(Math.PI / 2), R.redC);
+  miniPencil.position.set(0.3, 0.004, 0.33); miniPencil.rotation.y = -0.2;
   desk.add(miniPencil);
   const miniScale = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.26, 3).rotateZ(Math.PI / 2), R.white);
   miniScale.position.set(-0.44, 0.006, 0.2); miniScale.rotation.y = 0.24;
@@ -661,7 +730,7 @@ export function staging(R, Mcard) {
   desk.updateMatrixWorld(true);
   // its light sits a hand's breadth below the shade: inside it, the white lining would burn out
   const head = lamp.localToWorld(LAMP.head.clone().addScaledVector(LAMP.aimAt.clone().sub(LAMP.head).normalize(), 17));
-  lights.push([head.x, head.y, head.z, 0.8, 2.5]);
+  lights.push([head.x, head.y, head.z, 0.7, 2.5]);
 
   // everything but the desk is static: one mesh per material
   const byMat = new Map();
@@ -858,6 +927,12 @@ function buildMeadowTufts(out) {
     if (x < STEPS.x0 + STEPS.n * STEPS.run + 2.6 && z > STEPS.z0 - 0.5 && z < STEPS.z1 + 0.5) continue;
     spots.push([x, z, 0.75 + rnd() * 0.65]);
   }
+  // ornamental grass in rows along the old contour lines: the benches of the model, remembered in the garden
+  for (const t of LAYER_TOPS) for (let z = -11.5; z <= 12; z += 0.42) {
+    const x = Xof(t, z) - BENCH * 0.5 + (rnd() - 0.5) * 0.3;
+    if (x < 21.5 || x > 39 || (z > STEPS.z0 - 0.7 && z < STEPS.z1 + 0.7)) continue;
+    spots.push([x, z + (rnd() - 0.5) * 0.2, 0.9 + rnd() * 0.5]);
+  }
   for (const [ , tx, tz] of treeSpots()) {
     if (tx > 15 && tx < 42 && Math.abs(tz) < 16) {
       for (let k = 0; k < 5; k++) {
@@ -881,20 +956,20 @@ function buildMeadowTufts(out) {
       const gp = g.attributes.position, gn = g.attributes.normal;
       for (let v = 0; v < nV; v++) {
         const u = clamp((gp.getY(v) - ty) / (0.38 * hSc), 0, 1);
-        const ao = 0.52 + 0.52 * u;
+        const ao = (useDark ? 0.3 : 0.42) + 0.42 * u;
         cols[v * 3] = ao * (0.95 + 0.12 * u);
         cols[v * 3 + 1] = ao;
         cols[v * 3 + 2] = ao * (0.85 - 0.08 * u);
         gn.setXYZ(v, 0, 0.92, 0.38);
       }
       g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-      out[useDark ? 'leafDark' : 'leaf'].push(g);
+      out.tuft.push(g);
     }
   }
 }
 
 export function realTrees(R, phone) {
-  const out = { leafDark: [], leaf: [], maple: [], bark: [] };
+  const out = { leafDark: [], leaf: [], maple: [], bark: [], tuft: [] };
   // the twins of the card trees, where they stood on the model
   for (const [kind, x, z] of treeSpots()) treeParts(kind, x, landAt(x, z), z, 1, out);
   // grass tufts on the slope

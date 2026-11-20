@@ -1,6 +1,6 @@
 // The turn: one scene holds both worlds, the card model at night and the house in daylight, built from the same parts.
 // A front expands from the lamp's bulb. Card draws only outside it, the real house only inside it,
-// and a red line runs where the front crosses a surface. So the change travels through the world, not across the screen.
+// and a red line runs where the front crosses a surface (it fades out right in front of the lens, so the passage is not a red wash). So the change travels through the world, not across the screen.
 //
 // Each side also keeps its own light: the card is lit by the lamp, the moon and a dim fill, the house by the sun,
 // the daylight sky and the lamps inside. Three.js lights are global, so every lit material scales each light's
@@ -50,19 +50,24 @@ const CUT = (side) => `
 ${MAP_D}
 ${side === 'card' ? 'if ( uSeamK > 0.0 && sweepD < uSweepR ) discard;' : 'if ( sweepD > uSweepR ) discard;'}
 float dSeam = abs( sweepD - uSweepR );
-float coreLine = exp( -pow( dSeam / uSweepW, 2.0 ) );
-float echoLine = 0.36 * exp( -pow( ( dSeam - uSweepW * 2.6 ) / ( uSweepW * 0.75 ), 2.0 ) );
-float softBand = 0.16 * exp( -pow( dSeam / ( uSweepW * 4.5 ), 2.0 ) );
-float gridEnv = exp( -pow( dSeam / ( uSweepW * 11.5 ), 1.6 ) );
+// close to the lens the line is drawn fine: where the front runs nearly along a slope it would otherwise flood it
+float sweepWv = uSweepW * mix( 0.22, 1.0, smoothstep( 3.0, 24.0, distance( vSweepW, cameraPosition ) ) );
+float coreLine = exp( -pow( dSeam / sweepWv, 2.0 ) );
+float echoLine = 0.36 * exp( -pow( ( dSeam - sweepWv * 2.6 ) / ( sweepWv * 0.75 ), 2.0 ) );
+float softBand = 0.03 * exp( -pow( dSeam / ( sweepWv * 4.5 ), 2.0 ) );
+float gridEnv = exp( -pow( dSeam / ( sweepWv * 24.0 ), 1.6 ) );
 float cY = 1.0 - smoothstep( 0.0, 0.06, abs( fract( vSweepW.y * 2.0 + 0.5 ) - 0.5 ) );
 float cX = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.x + 0.5 ) - 0.5 ) );
 float cZ = 1.0 - smoothstep( 0.0, 0.045, abs( fract( vSweepW.z + 0.5 ) - 0.5 ) );
-float cadGrid = max( cY * 0.62, max( cX, cZ ) * 0.42 ) * gridEnv;
-float sweepSeam = uSweepGlow * uSeamK * ( coreLine * 1.15 + echoLine + softBand + cadGrid ) * smoothstep( 98.0, 72.0, compSweepD );
+float cadGrid = max( cY * 0.8, max( cX, cZ ) * 0.6 ) * gridEnv * ${side === 'real' ? '1.0' : '0.22'}; // the grid belongs to what has just been scanned
+float sweepFade = uSweepGlow * uSeamK * smoothstep( 98.0, 72.0, compSweepD );
+float sweepFar = smoothstep( 3.0, 11.0, distance( vSweepW, cameraPosition ) ); // close to the lens only the line itself is drawn
+float sweepSeam = sweepFade * ( coreLine * 1.15 + ( echoLine + softBand + cadGrid ) * sweepFar );
+float sweepCore = sweepFade * coreLine;
 `;
 
 // make a material belong to one side of the front ('card' or 'real'). clamp: distances beyond it count as it
-export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0 } = {}) {
+export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0, pointK = null } = {}) {
   if (mat.userData.sweep) return mat;
   mat.userData.sweep = side;
   const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
@@ -73,7 +78,7 @@ export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0 } = {}) {
   mat.onBeforeCompile = (s, r) => {
     if (prev && prev !== THREE.Material.prototype.onBeforeCompile) prev.call(mat, s, r);
     const S = SIDE[side];
-    Object.assign(s.uniforms, { uSweepC: SWEEP.C, uSweepR: SWEEP.R, uSweepW: SWEEP.W, uSweepGlow: SWEEP.glow, uSweepCol: SWEEP.col, uSweepClamp: clampU, uSeamK: seamU, uDirK: S.dirK, uHemiK: S.hemiK, uSpotK: S.spotK, uPointK: S.pointK });
+    Object.assign(s.uniforms, { uSweepC: SWEEP.C, uSweepR: SWEEP.R, uSweepW: SWEEP.W, uSweepGlow: SWEEP.glow, uSweepCol: SWEEP.col, uSweepClamp: clampU, uSeamK: seamU, uDirK: S.dirK, uHemiK: S.hemiK, uSpotK: S.spotK, uPointK: pointK === null ? S.pointK : { value: pointK } });
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vSweepW;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvSweepW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;');
@@ -82,7 +87,7 @@ export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0 } = {}) {
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n' + CUT(side))
       .replace('#include <lights_fragment_begin>', LIGHTS)
       // the line is laid over the surface, not added to it: on white card an added red would only turn pink
-      .replace('#include <opaque_fragment>', 'float sweepK = clamp( sweepSeam, 0.0, 1.0 );\noutgoingLight = mix( outgoingLight, uSweepCol * ( 0.5 + 0.5 * sweepK ), sweepK * 0.92 );\n#include <opaque_fragment>');
+      .replace('#include <opaque_fragment>', 'float sweepNear = smoothstep( 0.9, 3.4, length( vViewPosition ) );\nfloat sweepK = clamp( sweepSeam, 0.0, 1.0 ) * sweepNear;\noutgoingLight = mix( outgoingLight, uSweepCol * ( 0.5 + 0.5 * sweepK ), sweepK * 0.92 ) + uSweepCol * sweepCore * sweepNear * 1.6 * smoothstep( 4.0, 16.0, length( vViewPosition ) );\n#include <opaque_fragment>');
   };
   const prevK = prevKey && prevKey !== THREE.Material.prototype.customProgramCacheKey ? prevKey.bind(mat) : () => '';
   mat.customProgramCacheKey = () => prevK() + '|sweep-' + side;

@@ -6,8 +6,8 @@ import { houseParts, makeRnd, PEOPLE, TREES, G } from './house.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const rnd = makeRnd(23);
-export const MAT_TOP = -4.8;   // the cutting mat's top face
-export const DESK_TOP = -5.3;
+export const MAT_TOP = -6.4;   // the cutting mat's top face
+export const DESK_TOP = -6.9;
 
 // ---------------------------------------------------------------- textures
 let ANISO = 8;
@@ -63,7 +63,7 @@ function makeTextures() {
   }, { tile: 4 });
   // greyboard: recycled fibre, pulp flecks, 1 tile = 6 cm
   T.board = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#8b8b8f'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#c4c4c6'; g.fillRect(0, 0, s, s);
     blotches(g, s, 140, 'rgba(40,40,44,0.07)', 10, 62);
     blotches(g, s, 95, 'rgba(206,206,210,0.07)', 10, 52);
     fibres(g, s, 8200, 7.5, ['rgba(36,36,40,0.18)', 'rgba(198,198,202,0.18)', 'rgba(112,112,118,0.22)'], 0.8);
@@ -72,7 +72,7 @@ function makeTextures() {
   }, { tile: 6 });
   // cut greyboard edge: pressed-pulp strata, vertical blade score micro-lines, and top-edge crush highlight
   T.burn = canvasTex(512, 512, (g, s) => {
-    g.fillStyle = '#58585c'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#2b2b2f'; g.fillRect(0, 0, s, s);
     for (let y = 0; y < s; y += 2) {
       g.fillStyle = `rgba(${rnd() < 0.5 ? '24,24,27' : '150,150,155'},${0.10 + rnd() * 0.16})`;
       g.fillRect(0, y, s, 1 + rnd() * 2.2);
@@ -95,7 +95,7 @@ function makeTextures() {
   // the cutting mat: 150 x 110 cm, a 1 cm grid, numbers, angle lines
   T.mat = canvasTex(4096, 3004, (g, w, h) => {
     const k = w / 150;
-    g.fillStyle = '#17171a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#34343a'; g.fillRect(0, 0, w, h);
     blotches(g, w, 40, 'rgba(0,0,0,0.16)', 80, 300);
     // subtle knife score marks on the self-healing mat near the model
     g.strokeStyle = 'rgba(70,70,76,0.5)'; g.lineWidth = 1.2;
@@ -222,7 +222,7 @@ export function makeMaterials(env) {
   M.burn = std({ color: 0xffffff, map: T.burn, bumpMap: T.burn, bumpScale: 0.045, roughness: 0.84, envMapIntensity: 0.18 });
   M.figure = std({ color: 0xf0efed, map: T.card, bumpMap: T.card, bumpScale: 0.025, roughness: 0.62, envMapIntensity: 0.22 });
   M.mat = std({ map: T.mat, bumpMap: T.mat, bumpScale: 0.015, roughness: 0.78, envMapIntensity: 0.14 });
-  M.matEdge = std({ color: 0x0e0e10, roughness: 0.82 });
+  M.matEdge = std({ color: 0x1c1c1f, roughness: 0.82 });
   M.desk = std({ map: T.desk, bumpMap: T.desk, bumpScale: 0.03, roughness: 0.52, envMapIntensity: 0.2 });
   M.rule = std({ color: 0xe6ebf0, map: T.rule, roughnessMap: T.ruleRough, bumpMap: T.ruleRough, bumpScale: 0.018, metalness: 0.52, roughness: 0.34, envMapIntensity: 1.45 });
   M.steel = std({ color: 0xd4d9de, metalness: 0.62, roughness: 0.28, envMapIntensity: 1.25 });
@@ -304,17 +304,21 @@ export function cardHouse(M) {
 }
 
 // ---------------------------------------------------------------- the site: stacked greyboard, one layer per 0.4 m
-// The house stands on the top layer. South of the terrace the garden steps down, bench by bench,
-// to the lawn the little figure stands on.
+// The house stands on a shelf in a slope. South of the terrace the garden steps down, bench by bench,
+// to the lawn the little figure stands on. Behind the house the land climbs again, four layers more.
 export const shiftZ = (z) => { const a = Math.max(0, Math.min(1, (Math.abs(z + 2) - 7.5) / 9)); return 3.4 * (1 - Math.cos(a * Math.PI)) / 2 - 0.6 * Math.sin(z * 0.29 + 0.8) * a; };
 export const FALL = 2.8, STEP = 0.4, BENCH = 1.5, SLOPE_X = 22.5; // the garden drops 2.8 m, in layers of 0.4 m that are each 1.5 m wide
+export const RISE = 1.6, RISE_X = 0.2, RISE_BENCH = 2.6;          // behind the house it climbs 1.6 m, each layer 2.6 m wide
 export const Xof = (t, z) => SLOPE_X + (G - t) / STEP * BENCH + shiftZ(z);
+export const Xup = (t, z) => RISE_X + RISE_BENCH / 2 - (t - G) / STEP * RISE_BENCH + 0.8 * shiftZ(z);
 export const SITE = { x0: -14, x1: 40, z0: -20, z1: 14, base: +(G - FALL).toFixed(2) };
 export const LAYER_TOPS = []; for (let i = Math.round(FALL / STEP) - 1; i >= 0; i--) LAYER_TOPS.push(+(G - i * STEP).toFixed(2));
+export const UPPER_TOPS = []; for (let i = 1; i <= Math.round(RISE / STEP); i++) UPPER_TOPS.push(+(G + i * STEP).toFixed(2));
 // the top of the stack at (x, z)
 export function groundAt(x, z) {
   let top = SITE.base;
   for (const t of LAYER_TOPS) if (x < Math.min(SITE.x1, Xof(t, z))) top = t;
+  for (const t of UPPER_TOPS) if (x < Xup(t, z)) top = t;
   return top;
 }
 export function contourLayers(M) {
@@ -326,13 +330,10 @@ export function contourLayers(M) {
     geo.rotateX(-Math.PI / 2); geo.translate(0, yb, 0); worldUV(geo);
     const m = mesh(geo, [M.board, M.burn]); m.userData.top = yb + t; layers.push(m);
   };
+  const edge = (fn, t) => { const pts = [[BX0, BZ0]]; for (let z = BZ0; z <= BZ1 + 1e-6; z += 0.5) pts.push([Math.max(BX0 + 0.6, Math.min(BX1, fn(t, z))), +z.toFixed(2)]); pts.push([BX0, BZ1]); return pts; };
   layer(MAT_TOP, SITE.base - MAT_TOP, [[BX0, BZ0], [BX1, BZ0], [BX1, BZ1], [BX0, BZ1]]);
-  for (const t of LAYER_TOPS) {
-    const pts = [[BX0, BZ0]];
-    for (let z = BZ0; z <= BZ1 + 1e-6; z += 0.5) pts.push([Math.min(BX1, Xof(t, z)), +z.toFixed(2)]);
-    pts.push([BX0, BZ1]);
-    layer(t - STEP, STEP, pts);
-  }
+  for (const t of LAYER_TOPS) layer(t - STEP, STEP, edge(Xof, t));
+  for (const t of UPPER_TOPS) layer(t - STEP, STEP, edge(Xup, t));
   return layers;
 }
 
@@ -406,7 +407,7 @@ export function figureGeo() {
   return g;
 }
 // the hero's figure, in the lower garden where the dive ends
-export const HERO_FIG = [33.4, 4.4, -1.74]; // x, z, facing (radians about y): on the lawn at the foot of the garden steps, looking at the house
+export const HERO_FIG = [31.2, 5.9, -1.74]; // x, z, facing (radians about y): on the slope beside the garden steps, looking at the house
 export function modelFigures(M) {
   const geo = figureGeo();
   const list = PEOPLE.map(([x, y, z, r]) => [x, y ?? groundAt(x, z), z, r]);
@@ -471,6 +472,8 @@ export function deskProps(M) {
   off(52, 6, 14, 6.4, 0.3, [[-5.5, -1.6, 2.2, 3.0], [-2.4, -1.6, 2.2, 3.0], [0.7, -1.6, 2.2, 3.0]]);
   off(58, -8, 9, 4, -0.5, []);
   off(46, -18, 3.2, 12, 0.15, [[-0.9, -4, 1.8, 2.6]]);
+  // a roll of red tape by the offcuts
+  put(new THREE.LatheGeometry([[1.9, 0], [2.6, 0], [2.6, 1.8], [1.9, 1.8], [1.9, 0]].map(([x, y]) => new THREE.Vector2(x, y)), 56).translate(55.5, MAT_TOP, 0.5), M.pin);
   // the lamp
   const lamp = buildLamp(M, LAMP);
   g.add(lamp.group);
@@ -530,9 +533,9 @@ export function sheetTexture(kind, trace) {
   return canvasTex(W, Hh, (g) => drawSheet(g, W, Hh, kind, trace));
 }
 function drawSheet(g, W, H, kind, trace) {
-  g.fillStyle = trace ? '#d4d3cf' : '#eceae6'; g.fillRect(0, 0, W, H);
+  g.fillStyle = trace ? '#8f8f92' : '#b7b6b3'; g.fillRect(0, 0, W, H);
   blotches(g, Math.max(W, H), 30, trace ? 'rgba(86,86,92,0.05)' : 'rgba(110,110,116,0.04)', 40, 160);
-  const ink = 'rgba(16,16,18,0.92)', thin = 'rgba(16,16,18,0.55)', red = 'rgba(226,30,44,0.92)', paper = trace ? '#d4d3cf' : '#eceae6';
+  const ink = 'rgba(16,16,18,0.92)', thin = 'rgba(16,16,18,0.55)', red = 'rgba(214,24,38,0.95)', paper = trace ? '#8f8f92' : '#b7b6b3';
   g.strokeStyle = ink; g.lineWidth = 4; g.strokeRect(36, 36, W - 72, H - 72);
   // title block
   g.strokeRect(W - 360, H - 150, 324, 114); g.beginPath(); g.moveTo(W - 360, H - 106); g.lineTo(W - 36, H - 106); g.stroke();
@@ -572,7 +575,7 @@ function drawSheet(g, W, H, kind, trace) {
     const cz = 0.6; // the cut runs through the door, the void and the rooflight; we look west
     draw(-3, 36, -4.6, 8.6, (X, Y, k) => {
       g.fillStyle = 'rgba(16,16,18,0.12)';
-      g.beginPath(); g.moveTo(X(-3), Y(G)); g.lineTo(X(21.75), Y(G)); g.lineTo(X(32.25), Y(G - FALL)); g.lineTo(X(36), Y(G - FALL)); g.lineTo(X(36), Y(-4.4)); g.lineTo(X(-3), Y(-4.4)); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(X(-3), Y(G + (RISE_X + 3) / RISE_BENCH * STEP)); g.lineTo(X(RISE_X), Y(G)); g.lineTo(X(21.75), Y(G)); g.lineTo(X(32.25), Y(G - FALL)); g.lineTo(X(36), Y(G - FALL)); g.lineTo(X(36), Y(-4.4)); g.lineTo(X(-3), Y(-4.4)); g.closePath(); g.fill();
       const R = (b) => [X(b[0]), Y(b[4]), (b[3] - b[0]) * k, (b[4] - b[1]) * k];
       for (const p of parts) { const b = p.b; if (b[5] <= cz && b[5] > -6.8 && (p.k === 'struct' || p.k === 'furn' || p.k === 'stair') && p.ph > 1) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(b)); } }
       for (const p of parts) {
@@ -599,6 +602,7 @@ function drawSheet(g, W, H, kind, trace) {
       const Z = (z) => Y(-z);
       g.strokeStyle = thin; g.lineWidth = 2.4;
       for (const t of LAYER_TOPS) { g.beginPath(); for (let z = -20; z <= 14; z += 0.5) { const x = Math.min(40, Xof(t, z)); z === -20 ? g.moveTo(X(x), Z(z)) : g.lineTo(X(x), Z(z)); } g.stroke(); }
+      for (const t of UPPER_TOPS) { g.beginPath(); for (let z = -20; z <= 14; z += 0.5) { const x = Math.max(-13.4, Xup(t, z)); z === -20 ? g.moveTo(X(x), Z(z)) : g.lineTo(X(x), Z(z)); } g.stroke(); }
       g.strokeRect(X(17), Z(-7), 4.2 * k, 12.6 * k);
       g.save(); g.beginPath(); g.rect(X(5), Z(-7), 13.4 * k, 10 * k); g.clip();
       g.strokeStyle = ink; g.lineWidth = 2; for (let i = -40; i < 60; i++) { g.beginPath(); g.moveTo(X(5) + i * 9, Z(-7)); g.lineTo(X(5) + i * 9 + 10 * k, Z(-7) + 10 * k); g.stroke(); }
