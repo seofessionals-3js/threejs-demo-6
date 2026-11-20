@@ -13,7 +13,7 @@ Das Haus dieser Fassung heißt **Haus Passepartout**: ein weißer Rahmen aus Dac
 - **Der Übergang ist eine Kugel.** Jedes Material wird in `js/sweep.js` gepatcht: Karton wird außerhalb einer Kugel um die Glühbirne der Lampe gezeichnet, das echte Haus innerhalb, mit einer roten Linie, wo die Kugel eine Fläche schneidet. Die Linie wird über die Fläche gelegt und nicht addiert, denn auf weißem Karton würde ein addiertes Rot nur rosa. Die Kugel wächst, während Sie dort stehen, wo die Figur stand.
 - **Zwei Beleuchtungen in einer Szene.** Die Lichtschleife ist so gepatcht, dass der Karton von der Lampe beleuchtet wird und das Haus von einer tiefen Sonne aus Richtung der Lampe.
 - **Die Tür.** Zwei Glasflügel in roten Rahmen, zusammen 3,00 m breit, fahren auseinander, sobald Sie die Terrasse betreten, und schließen sich hinter Ihnen wieder.
-- **Kein Clipping.** Die Kamera hält auf dem ganzen Weg mindestens 40 cm Abstand zu jeder Fläche. `window.__rig.clear()` misst das (mit `?rec` in der Adresse): der exakte Abstand vom Auge zu jedem gezeichneten Dreieck, über den ganzen Scroll. Zurzeit ist der kleinste Wert 0,48 m, am Tisch im Arbeitszimmer.
+- **Kein Clipping.** Die Kamera hält auf dem ganzen Weg mindestens 40 cm Abstand zu jeder Fläche. `window.__rig.clear()` misst das (mit `?rec` in der Adresse): der exakte Abstand vom Auge zu jedem gezeichneten Dreieck, über den ganzen Scroll. Zurzeit ist der kleinste Wert 0,50 m, über dem Geländer der Galerie.
 - **Keine Bilddateien.** Karton, Graupappe, Beton, schwarze Eiche, Rasen und die angepinnten Zeichnungen werden alle im Code auf Canvas gemalt.
 
 ## Dateien
