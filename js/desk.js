@@ -449,7 +449,7 @@ export function deskProps(M) {
   const end = new THREE.CylinderGeometry(0.425, 0.425, 0.5, 6); end.rotateZ(Math.PI / 2); end.translate(7.3, 0, 0); pg.add(mesh(end, M.pencilStripe));
   const cone = new THREE.ConeGeometry(0.42, 2.2, 6); cone.rotateZ(Math.PI / 2); cone.translate(-8.6, 0, 0); pg.add(mesh(cone, M.wood));
   const tip = new THREE.ConeGeometry(0.12, 0.6, 8); tip.rotateZ(Math.PI / 2); tip.translate(-9.95, 0, 0); pg.add(mesh(tip, M.lead));
-  pg.position.set(30, MAT_TOP + 0.42, -31); pg.rotation.y = 0.5; g.add(pg); // behind the model, where no framing of the build cuts it off
+  pg.position.set(8, MAT_TOP + 0.42, 21); pg.rotation.y = 0.12; g.add(pg); // along the model's front edge, where no framing of the build or the end cuts it off
   // two rolls: one lying at the back, one standing on its end (a tower, seen from eye height)
   const roll = new THREE.CylinderGeometry(2.8, 2.8, 36, 40); roll.rotateZ(Math.PI / 2); roll.rotateY(0.5); roll.translate(-30, DESK_TOP + 2.8, -60); put(roll, M.roll); // grey, so the white model stands clear of it
   const core = new THREE.CylinderGeometry(1.1, 1.1, 36.4, 24); core.rotateZ(Math.PI / 2); core.rotateY(0.5); core.translate(-30, DESK_TOP + 2.8, -60); put(core, M.wood);
