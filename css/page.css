@@ -146,14 +146,14 @@ body.locked { overflow: hidden; }
 .turn-line .ln > span, .end h2 .ln > span { display: inline-block; transform: translate3d(0, 112%, 0); }
 
 .room {
-  position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 28px; bottom: 11vh;
   max-width: 340px; opacity: 0;
   display: flex; flex-direction: column; gap: 6px;
   padding: 14px 18px; border-left: 3px solid var(--accent); border-radius: 0;
   background: rgba(20, 20, 23, 0.93); color: var(--paper);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.36); text-shadow: none;
 }
-.room.study-room { left: auto; right: 28px; top: 72%; }
+.room.study-room { left: auto; right: 28px; top: 72%; bottom: auto; }
 .room .lv { font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: #ff4d57; }
 .room b { font: 600 32px/1 var(--display); text-transform: uppercase; letter-spacing: .01em; color: var(--paper); }
 .room .nt { font: 400 10px/1.65 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: rgba(241, 238, 234, 0.84); }
@@ -236,7 +236,7 @@ body.locked { overflow: hidden; }
   .chip { display: none; }
   .turn-chip { left: 18px; bottom: 22px; font-size: 9px; padding: 6px 10px; }
   .turn-line { left: 18px; right: 18px; bottom: auto; top: 13vh; font-size: 36px; }
-  .room { left: 18px; top: 13vh; transform: none; max-width: calc(100vw - 36px); padding: 11px 14px; }
+  .room { left: 18px; top: 13vh; bottom: auto; transform: none; max-width: calc(100vw - 36px); padding: 11px 14px; }
   .room.study-room { left: 18px; right: auto; top: auto; bottom: 9vh; }
   .room b { font-size: 24px; }
   .room .lv, .room .nt { font-size: 8.5px; }

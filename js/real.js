@@ -237,8 +237,8 @@ function makeTextures() {
   // the painting on the gallery wall: a red sun, cut by a black arc
   T.art = canvasTex(1024, 683, (g, w, h) => {
     g.fillStyle = '#eceae6'; g.fillRect(0, 0, w, h); blotches(g, w, 40, 'rgba(142,142,144,0.06)', 30, 160);
-    g.fillStyle = '#e5202e'; g.beginPath(); g.arc(w * 0.62, h * 0.46, h * 0.3, 0, 7); g.fill();
-    g.strokeStyle = '#131315'; g.lineWidth = 26; g.beginPath(); g.arc(w * 0.3, h * 1.1, h * 0.75, Math.PI * 1.25, Math.PI * 1.9); g.stroke();
+    g.fillStyle = '#e5202e'; g.beginPath(); g.arc(w * 0.62, h * 0.27, h * 0.2, 0, 7); g.fill();
+    g.strokeStyle = '#131315'; g.lineWidth = 26; g.beginPath(); g.arc(w * 0.34, h * 1.18, h * 0.62, Math.PI * 1.22, Math.PI * 1.86); g.stroke();
     g.fillStyle = 'rgba(36,36,38,0.85)'; g.fillRect(w * 0.12, h * 0.18, w * 0.05, h * 0.5);
     grain(g, w, h, 14);
   });
@@ -282,6 +282,7 @@ function patchLand(mat) {
         float meadow = lNoise(vLandPos.xz * 0.025) * 0.6 + lNoise(vLandPos.xz * 0.11) * 0.4;
         float blades = (lNoise(vLandPos.xz * 3.4) - 0.5) * 0.09;
         grassCol *= mix(vec3(0.88), vec3(1.08), meadow) + blades;
+        grassCol *= 1.0 + 0.06 * sin(vLandPos.z * 2.6 + lNoise(vLandPos.xz * 0.4) * 1.6); // mown in stripes
         diffuseColor.rgb *= grassCol;
       }`);
   };
@@ -352,7 +353,7 @@ export function realMaterials(env) {
     shade: std({ color: 0xd9d6d0, emissive: 0xfff0e0, emissiveIntensity: 0.42, roughness: 0.75, side: THREE.DoubleSide }),
     shadeDim: std({ color: 0x8c8a86, emissive: 0xfff0e0, emissiveIntensity: 0.2, roughness: 0.8, side: THREE.DoubleSide }), // the standing lamps, which the sun reaches too
     leaf: patchFoliage(std({ color: 0x5b5d60, roughness: 0.78, envMapIntensity: 0.22 }), [0.10, 0.10, 0.11]),
-    leafDS: std({ color: 0x8a8c90, roughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.35 }),
+    leafDS: std({ color: 0x3f4144, roughness: 0.7, side: THREE.DoubleSide, envMapIntensity: 0.25 }),
     leafDark: patchFoliage(std({ color: 0x353638, roughness: 0.82, envMapIntensity: 0.18 }), [0.06, 0.06, 0.07]),
     tuft: patchFoliage(std({ color: 0x4b4c4f, roughness: 0.88, envMapIntensity: 0.12 }), [0.012, 0.012, 0.013]), // grass: no glow against the light
     maple: patchFoliage(std({ color: 0xb3141f, roughness: 0.72, envMapIntensity: 0.22 }), [0.30, 0.03, 0.04]),
@@ -686,11 +687,11 @@ export function staging(R, Mcard) {
   lights.push([16.4, L1 + 1.42, -5.35, 2.0, 0]);
   // the desk: a rug, the chair pushed aside so the view to the model is open
   box(12.6, L1, -6.05, 16.0, L1 + 0.01, -3.55, R.rug, { cast: false });
-  addChair(13.75, L1, -4.05, -0.5, R.leather);
+  addChair(12.95, L1, -4.35, -0.9, R.leather);
 
   // the lamp on the model's own desk is switched on
   if (Mcard.bulb) { Mcard.bulb.emissiveIntensity = 0.3; }
-  if (Mcard.lampInner) { Mcard.lampInner.emissiveIntensity = 0.12; Mcard.lampInner.color.setHex(0x8f8f92); }
+  if (Mcard.lampInner) { Mcard.lampInner.emissiveIntensity = 0.04; Mcard.lampInner.color.setHex(0x77777a); }
   if (Mcard.lampRim) { Mcard.lampRim.emissiveIntensity = 0.25; }
 
   // the desk set: mat, model, lamp, rule and pencil, built round the middle of the mat and then turned to face the room
@@ -921,7 +922,7 @@ function buildMeadowTufts(out) {
 
   // place tufts around the foreground slope, scale figure spot, terrace edges, and close tree bases
   const spots = [];
-  for (let i = 0; i < 165; i++) {
+  for (let i = 0; i < 300; i++) {
     const x = 21.6 + rnd() * 19, z = -11 + rnd() * 23;
     // keep the garden steps and the place where the figure stands clear
     if (x < STEPS.x0 + STEPS.n * STEPS.run + 2.6 && z > STEPS.z0 - 0.5 && z < STEPS.z1 + 0.5) continue;

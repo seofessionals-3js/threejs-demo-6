@@ -334,6 +334,13 @@ export function contourLayers(M) {
   layer(MAT_TOP, SITE.base - MAT_TOP, [[BX0, BZ0], [BX1, BZ0], [BX1, BZ1], [BX0, BZ1]]);
   for (const t of LAYER_TOPS) layer(t - STEP, STEP, edge(Xof, t));
   for (const t of UPPER_TOPS) layer(t - STEP, STEP, edge(Xup, t));
+  // where the house will stand, the top layer carries its footprint as a shallow dark cut. House and terrace cover it once they are down
+  const seat = layers.find((l) => Math.abs(l.userData.top - G) < 1e-3);
+  if (seat) {
+    const fp = new THREE.BoxGeometry(11.9, 0.012, 9.9); fp.translate(11, G + 0.006, -2);
+    const tp = new THREE.BoxGeometry(4.1, 0.012, 12.5); tp.translate(19.05, G + 0.006, -0.7);
+    seat.add(mesh(mergeGeometries([fp, tp]), M.burn, { cast: false }));
+  }
   return layers;
 }
 

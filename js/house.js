@@ -37,7 +37,10 @@ export function houseParts(rnd = makeRnd(11)) {
   // a wall: axis 'x' is thick along x and spans (z, y); axis 'z' is thick along z and spans (x, y).
   // every hole gets a steel frame and a pane
   const wall = (axis, t0, t1, a0, a1, b0, b1, holes, m, ph) => {
-    for (const [p0, p1, q0, q1] of carve(a0, a1, b0, b1, holes)) axis === 'x' ? box(t0, q0, p0, t1, q1, p1, m, 'struct', ph) : box(p0, q0, t0, p1, q1, t1, m, 'struct', ph);
+    for (const [c0, c1, q0, q1] of carve(a0, a1, b0, b1, holes)) {
+      const p0 = c0 > a0 ? c0 - 0.015 : c0, p1 = c1 < a1 ? c1 + 0.015 : c1; // each piece reaches into its neighbour: no light leaks along the joints
+      axis === 'x' ? box(t0, q0, p0, t1, q1, p1, m, 'struct', ph) : box(p0, q0, t0, p1, q1, t1, m, 'struct', ph);
+    }
     const tm = (t0 + t1) / 2, f = 0.05;
     const bar = (a, b, c, d) => (axis === 'x' ? box(tm - 0.04, c, a, tm + 0.04, d, b, 'steel', 'frame', 7) : box(a, c, tm - 0.04, b, d, tm + 0.04, 'steel', 'frame', 7));
     for (const h of holes) {
@@ -82,8 +85,8 @@ export function houseParts(rnd = makeRnd(11)) {
   // north wall: the entrance from the forecourt, two windows upstairs
   wall('x', 5, 5.3, -7, 3, 0, TOP, [[-1.6, -0.5, 0, 2.3], [-5.6, -3.4, 4.0, 5.3], [0.4, 1.6, 4.0, 5.3]], 'plaster', 4);
   // the two side walls run out past the glass and make the frame
-  wall('z', -7, -6.7, 5.3, 18.4, 0, TOP, [[6.6, 10.6, 1.05, 2.0], [6.8, 9.6, 4.0, 5.3]], 'plaster', 4);
-  wall('z', 2.7, 3, 5.3, 18.4, 0, TOP, [[14.9, 16.1, 0.45, 5.45], [6.3, 9.9, 4.0, 5.3]], 'plaster', 4);
+  wall('z', -7, -6.7, 5.27, 18.4, 0, TOP, [[6.6, 10.6, 1.05, 2.0], [6.8, 9.6, 4.0, 5.3]], 'plaster', 4);
+  wall('z', 2.7, 3, 5.27, 18.4, 0, TOP, [[14.9, 16.1, 0.45, 5.45], [6.3, 9.9, 4.0, 5.3]], 'plaster', 4);
   // upstairs, the wall between the rooms and the gallery
   wall('x', 11.6, 11.75, -6.7, 2.7, L1, TOP, [], 'plaster', 4);
 
@@ -169,8 +172,8 @@ export function houseParts(rnd = makeRnd(11)) {
 export const PEOPLE = [[19.6, 0, -3.4, -1.2], [17.7, L1, -4.4, -0.3], [1.2, null, -1.1, 2.6], [27.2, null, -4.6, 0.9]];
 // trees, [kind, x, z]: a red maple by the house and one in the garden, a row of poplars behind, round crowns between
 export const TREES = [
-  ['maple', 14.8, 7.6], ['maple', 29.6, 12.9],
+  ['maple', 14.8, 7.6], ['maple', 26.5, 11.8],
   ['poplar', -9.5, -15], ['poplar', -6, -15.9], ['poplar', -2.5, -16.5], ['poplar', 1, -16.9], ['poplar', 4.5, -17.1],
-  ['round', 26.5, -12.5], ['round', 31.5, -9.2], ['round', 36.8, -13.6], ['round', 34.5, -8.8], ['round', 25.5, 13.0], ['round', 22, 9.6],
+  ['round', 26.5, -12.5], ['round', 31.5, -9.2], ['round', 36.8, -13.6], ['round', 34.5, -8.8], ['round', 21.5, 12.6], ['round', 19.2, 8.8],
   ['round', -8.5, 6.5], ['round', -3.5, 10.5], ['round', -10.5, -3.8], ['poplar', 37.5, -3.4], ['round', 22.5, -10.5],
 ];
