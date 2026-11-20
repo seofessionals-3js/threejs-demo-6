@@ -282,7 +282,8 @@ function patchLand(mat) {
         float meadow = lNoise(vLandPos.xz * 0.025) * 0.6 + lNoise(vLandPos.xz * 0.11) * 0.4;
         float blades = (lNoise(vLandPos.xz * 3.4) - 0.5) * 0.09;
         grassCol *= mix(vec3(0.88), vec3(1.08), meadow) + blades;
-        grassCol *= 1.0 + 0.06 * sin(vLandPos.z * 2.6 + lNoise(vLandPos.xz * 0.4) * 1.6); // mown in stripes
+        grassCol *= 1.0 + 0.09 * sin(vLandPos.z * 2.6 + lNoise(vLandPos.xz * 0.4) * 1.6); // mown in stripes
+        grassCol *= mix(0.74, 1.2, smoothstep(17.0, 40.0, vLandPos.x));                    // darker under the house, brighter out toward the light
         diffuseColor.rgb *= grassCol;
       }`);
   };
@@ -353,7 +354,7 @@ export function realMaterials(env) {
     shade: std({ color: 0xd9d6d0, emissive: 0xfff0e0, emissiveIntensity: 0.42, roughness: 0.75, side: THREE.DoubleSide }),
     shadeDim: std({ color: 0x8c8a86, emissive: 0xfff0e0, emissiveIntensity: 0.2, roughness: 0.8, side: THREE.DoubleSide }), // the standing lamps, which the sun reaches too
     leaf: patchFoliage(std({ color: 0x5b5d60, roughness: 0.78, envMapIntensity: 0.22 }), [0.10, 0.10, 0.11]),
-    leafDS: std({ color: 0x3f4144, roughness: 0.7, side: THREE.DoubleSide, envMapIntensity: 0.25 }),
+    leafDS: std({ color: 0x5e6064, roughness: 0.66, side: THREE.DoubleSide, envMapIntensity: 0.3 }),
     leafDark: patchFoliage(std({ color: 0x353638, roughness: 0.82, envMapIntensity: 0.18 }), [0.06, 0.06, 0.07]),
     tuft: patchFoliage(std({ color: 0x4b4c4f, roughness: 0.88, envMapIntensity: 0.12 }), [0.012, 0.012, 0.013]), // grass: no glow against the light
     maple: patchFoliage(std({ color: 0xb3141f, roughness: 0.72, envMapIntensity: 0.22 }), [0.30, 0.03, 0.04]),

@@ -162,27 +162,22 @@ const wash = new THREE.SpotLight(0xfff0e2, 0, 0, 0.9, 1, 1.6);
 wash.position.set(96, 86, 44); wash.target.position.set(189, 26, 34);
 scene.add(spot, spot.target, spill, spill.target, wash, wash.target, cardInner, cardInner.target);
 
-// the low sun itself, where the daylight comes from: a small disc, there only while the whole world is the real one
-const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(1.4, 20, 12), new THREE.MeshBasicMaterial({ color: new THREE.Color(9, 8.6, 8.1), fog: false }));
-sunDisc.position.copy(V(12, 1, -2)).addScaledVector(RW.SUN_DIR, 150);
-sunDisc.visible = false;
-scene.add(sunDisc);
-
 // the lamps that are on inside the real house, the last of them the little lamp over the model on the study desk
 for (const [x, y, z, i, dist] of stage.userData.lights) {
   const l = new THREE.PointLight(0xfff7f0, i, dist, 2); l.position.set(x, y, z); scene.add(l);
 }
 
+let wallDim = 0; // 0..1: how far the light on the studio walls is taken down
 function setLamp(k, endGlow = 0) {
   spot.intensity = 6800 * k;
-  spill.intensity = 2100 * k;
+  spill.intensity = 2100 * k * (1 - 0.62 * wallDim);
   M.bulb.emissiveIntensity = 16 * k;
   M.lampInner.emissiveIntensity = 0.52 * k;
   M.lampRim.emissiveIntensity = 1.65 * k;
   hemi.intensity = 0.28 + 0.34 * k;
   fill.intensity = 0.58 * k + 0.14 * endGlow;
   moon.intensity = lerp(1.38, 0.32, k);
-  wash.intensity = 1500 * k;
+  wash.intensity = 1500 * k * (1 - 0.5 * wallDim);
   cardInner.intensity = 240 * endGlow * (1 - k);
   // dim studio environment reflections on acetate and metal when the desk lamp is switched off
   for (const c of house.children) {
@@ -208,8 +203,8 @@ const KEYS = {
     path: [
       { p: V(76.3, 29.7, 60.8), t: V(8.5, -2.0, -0.9) },
       { p: V(56, 14.5, 39), t: V(8, -0.2, -0.6) },
-      { p: V(49.5, 4.6, 17), t: V(10.5, 2.0, -7.5) },
-      { p: V(46.5, 0.6, 10.5), t: V(11, 2.4, -4.6) },
+      { p: V(49.5, 4.6, 17), t: V(10.5, 3.2, -7.5) },
+      { p: V(46.5, 0.6, 10.5), t: V(11, 3.2, -4.6) },
       { p: V(42.5, -0.6, 6.4), t: V(11.4, 2.3, -0.2) },
       { p: V(38.6, EYE_Y, 4.6), t: V(11.5, 2.2, 0.4) },
     ],
@@ -228,12 +223,12 @@ const KEYS = {
       { p: V(39.4, EYE_Y, 7.0), t: V(12, 3.9, -2.6) },
     ],
     eye: { f: 56, fp: V(17, 2.5, -2), ap: 0.00045, mb: 0.009 },
-    turnF: 50, walkF: [50, 68], deskF: 52, backF: 68,
+    turnF: 62, walkF: [62, 68], deskF: 52, backF: 68,
   },
 };
 // where the figure stood: the turn ends here, and the walk starts here (on a phone the lens aims further west, to hold the whole front)
 const SPOT = { p: V(31.4, EYE_Y, 5.85), t: V(12, 3.6, -3.4) };
-const SPOT_PH = { p: V(32.6, EYE_Y, 5.6), t: V(12, 3.3, -3.9) };
+const SPOT_PH = { p: V(27.5, 0.0, 1.6), t: V(13, 2.3, 0.6) }; // right of the garden steps: the corner of the frame, the door, the painting, and lawn in front
 const WALK = [
   SPOT,
   { p: V(27.6, 0.1, 4.6), t: V(12.5, 2.9, -2.4) },        // onto the garden steps and up
@@ -243,13 +238,13 @@ const WALK = [
   { p: V(17.7, 1.67, 0.2), t: V(8.5, 2.2, -1.0) },
   { p: V(16.9, 1.68, 0.4), t: V(8.4, 1.2, -1.6) },        // through it
   { p: V(16.4, 1.72, 0.9), t: V(9.5, 0.25, -3.6) },       // holding just inside, turned across the room: sofa, table, kitchen, the bookcase at the far wall
-  { p: V(15.8, 3.0, 0.5), t: V(9.0, 4.2, -0.4) },         // rising through the void to the level of the gallery floor: the painting above it, the room below
+  { p: V(15.8, 3.0, 0.5), t: V(9.3, 4.5, -2.1) },         // rising through the void to the level of the gallery floor, turned to the study's corner: painting, balustrade, bookcase, and the room below
   { p: V(15.2, 4.62, -0.9), t: V(13.6, 3.7, -5.0) },      // level with the gallery, turning to the study
   { p: V(14.9, 4.68, -2.4), t: V(14.0, 3.95, -5.2) },     // over the balustrade (its rail is at 4.20)
   { p: V(14.75, 4.45, -3.2), t: V(14.2, 3.95, -5.1) },    // to the long side of the desk
   { p: V(14.5, 4.25, -3.9), t: V(14.2, 3.97, -5.1) },     // close on the lit model, the pinned drawings behind it
-  { p: V(15.2, 4.62, -3.7), t: V(12.3, 4.3, 1.4) },       // turning round by way of the void and the painting across it
-  { p: V(15.6, 4.74, -1.5), t: V(51.7, -1.5, 14.6) },       // and out through the study's own glass: the balcony, the garden, the dark room the desk stands in
+  { p: V(15.2, 4.72, -3.7), t: V(12.3, 4.3, 1.4) },       // turning round by way of the void and the painting across it
+  { p: V(16.2, 4.74, -0.75), t: V(54.6, -2.2, 8.1) },     // and out: up at the tall glass, between two of its mullions, the garden steps below and the dark room the desk stands in beyond
 ];
 const WALK_DOOR = 4, WALK_HOLD = 7, WALK_RISE = 8, WALK_GAL = 9, WALK_DESK = 12; // the keys the walk is timed by
 const BACK = [
@@ -257,7 +252,7 @@ const BACK = [
   { p: V(15.9, 3.3, -0.3), t: V(50, -1.5, 17) },          // down through the void
   { p: V(16.3, 2.05, 0.2), t: V(52, -2.2, 19) },
   { p: V(18.1, 1.8, 0.35), t: V(56, -2.6, 21) },          // out through the door
-  { p: V(20.4, 1.85, 3.9), t: V(45, -4.5, 12.0) },        // at the head of the garden steps: down them to the lawn, the mat, the studio wall
+  { p: V(20.4, 1.85, 3.9), t: V(45, -2.2, 12.0) },        // at the head of the garden steps: down them to the lawn, the mat, the studio wall
   { p: V(23.2, 2.5, 3.2), t: V(24, 1.6, 20) },            // turning by way of the garden
   { p: V(25.2, 3.1, 0.2), t: V(13, 2.7, -1.7) },          // turned round: the whole front of the house
   { p: V(30, 5.6, 5.0), t: V(12.2, 2.3, -2.0) },          // pulling back, facing the house
@@ -317,10 +312,10 @@ function useKeys() {
   pathT = new THREE.CatmullRomCurve3(K.path.map((k) => k.t), false, 'centripetal');
   const eyeK = K.path[K.path.length - 1];
   const midK1 = phone
-    ? { p: V(37.0, EYE_Y, 6.5), t: V(11.8, 4.0, -3.0) }
+    ? { p: V(37.0, EYE_Y, 5.4), t: V(11.8, 3.4, -1.8) }
     : { p: V(36.3, EYE_Y, 5.0), t: V(11.6, 2.6, -0.8) };
   const midK2 = phone
-    ? { p: V(34.6, EYE_Y, 6.0), t: V(11.9, 4.2, -3.5) }
+    ? { p: V(32.4, -0.7, 3.0), t: V(12.6, 2.6, -0.2) }
     : { p: V(33.6, EYE_Y, 5.5), t: V(11.8, 3.2, -2.2) };
   const here = phone ? SPOT_PH : SPOT;
   turnP = new THREE.CatmullRomCurve3([eyeK.p, midK1.p, midK2.p, here.p], false, 'centripetal');
@@ -494,7 +489,8 @@ function walkCamera(w) {
   const wu = pw(w, [[0, 0], [0.2, sO], [0.27, sH - 0.008], [0.42, sH + 0.012], [0.52, sR], [0.63, sG], [0.78, sD - 0.004], [0.87, sD + 0.004], [1, 1]]);
   const s = walkShot.at(wu);
   const fIn = lerp(K.walkF[0], K.walkF[1], sstep(seg(w, 0.17, 0.3)));
-  place(s.p, s.dir, lerp(fIn, K.deskF, sstep(seg(w, 0.6, 0.78)) * (1 - sstep(seg(w, 0.87, 0.97)))));
+  const fDesk = lerp(fIn, K.deskF, sstep(seg(w, 0.6, 0.78)) * (1 - sstep(seg(w, 0.87, 0.97))));
+  place(s.p, s.dir, lerp(fDesk, K.backF, sstep(seg(w, 0.9, 1)))); // and hands over to the lens of the way back
   setFocus(K.eye.fp, 0, 0.01);
   return { ao: 0.95, aoR: 0.6 };
 }
@@ -559,7 +555,6 @@ function update(t, dt) {
   SWEEP.R.value = Rv;
   SWEEP.glow.value = sstep(seg(Rv, 36, 41)) * (1 - 0.85 * sstep(seg(Rv, 70.5, 72.75)));
   for (const m of realMeshes) m.visible = Rv > 32;
-  sunDisc.visible = Rv > R_MAX - 0.05;
   const cardOn = Rv < R_MAX - 0.3;
   for (const m of cardMeshes) m.visible = buildSet.has(m) ? m.visible && cardOn : cardOn; // the build decides first, the front second
   // cross-fade the lamp's light into a low white sun as the sweep passes over the camera and the house
@@ -575,6 +570,7 @@ function update(t, dt) {
   let k = build.k;
   const endGlow = sstep(seg(e, 0.2, 0.45));
   if (e > 0.2) k *= 1 - eout(seg(e, 0.2, 0.38));
+  wallDim = sstep(seg(d, 0.12, 0.5)) * (1 - sstep(seg(r, 0.8, 0.95)));
   setLamp(k, endGlow);
 
   // shadows redraw when something that casts one has moved (a jump in time included)
@@ -609,6 +605,7 @@ function copy(tb, y, d, tau, w, r, e) {
   hud.scrim.style.opacity = Math.max(dop, tl * 0.8);
   // the rooms
   show(hud.rooms[0], sstep(seg(w, 0.29, 0.35)) * (1 - sstep(seg(w, 0.54, 0.6))));
+  hud.rooms[0].style.bottom = phone ? '' : lerp(11, 35, sstep(seg(w, 0.43, 0.515))).toFixed(2) + 'vh'; // it rides up with the lens
   show(hud.rooms[1], sstep(seg(w, 0.74, 0.8)) * (1 - sstep(seg(w, 0.88, 0.93))));
   // back to the desk
   show(hud.backLine, sstep(seg(r, 0.6, 0.68)) * (1 - sstep(seg(r, 0.84, 0.9))), 18);
