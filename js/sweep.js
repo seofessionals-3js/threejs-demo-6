@@ -18,7 +18,7 @@ export const SWEEP = {
   W: { value: 0.20 },                  // width of the line
   glow: { value: 0 },
   glowS: { value: 0 },
-  col: { value: new THREE.Color(1.55, 0.09, 0.13) },
+  col: { value: new THREE.Color(1.7, 0.72, 0.07) },
 };
 // The shadow maps are drawn once and kept (see page.js): each light only sees its own side, whatever the front is doing.
 export const SHADOW = { cardR: { value: 0 }, realR: { value: 1e9 } };

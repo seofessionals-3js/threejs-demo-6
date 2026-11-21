@@ -84,7 +84,7 @@ function makeTextures() {
   const T = {};
   // Architectural board-marked concrete: pine shuttering grain, lift seams, and recessed cone tie-rod holes
   T.conc = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#b6b6b9'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#bcb8af'; g.fillRect(0, 0, s, s);
     blotches(g, s, 95, 'rgba(252,252,254,0.038)', 28, 130);
     blotches(g, s, 95, 'rgba(52,52,54,0.042)', 24, 120);
     const boards = 16, bh = s / boards;
@@ -127,35 +127,35 @@ function makeTextures() {
       let x = -trnd() * s * 0.4;
       while (x < s) {
         const L = s * (0.42 + trnd() * 0.55), v = trnd();
-        g.fillStyle = `hsl(240,3%,${15 + v * 6}%)`;
+        g.fillStyle = `hsl(36,38%,${53 + v * 7}%)`;
         g.fillRect(x, r * h, L, h);
         for (let k = 0; k < 18; k++) {
           const gy = r * h + trnd() * h;
-          g.fillStyle = `rgba(59,59,61,${0.035 + trnd() * 0.065})`;
+          g.fillStyle = `rgba(112,80,42,${0.05 + trnd() * 0.08})`;
           g.fillRect(x, gy, L, 0.8 + trnd() * 1.4);
         }
         for (let k = 0; k < 6; k++) {
-          g.fillStyle = `rgba(224,224,226,${0.04 + trnd() * 0.05})`;
+          g.fillStyle = `rgba(252,236,206,${0.06 + trnd() * 0.07})`;
           g.fillRect(x + trnd() * L * 0.5, r * h + trnd() * h, L * 0.4, 1);
         }
-        g.fillStyle = 'rgba(31,31,33,0.28)'; g.fillRect(x, r * h, 1.5, h);
+        g.fillStyle = 'rgba(86,60,32,0.30)'; g.fillRect(x, r * h, 1.5, h);
         x += L;
       }
-      g.fillStyle = 'rgba(30,30,32,0.26)'; g.fillRect(0, r * h, s, 1.4);
-      g.fillStyle = 'rgba(240,240,242,0.08)'; g.fillRect(0, r * h + 1.4, s, 1);
+      g.fillStyle = 'rgba(86,60,32,0.28)'; g.fillRect(0, r * h, s, 1.4);
+      g.fillStyle = 'rgba(252,236,206,0.10)'; g.fillRect(0, r * h + 1.4, s, 1);
     }
     grain(g, s, s, 9);
   }, { tile: 3.6 });
 
   // One slab of black-stained oak for the study desk
   T.deskOak = canvasTex(1024, 512, (g, w, h) => {
-    g.fillStyle = '#1d1d20'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#c4a374'; g.fillRect(0, 0, w, h);
     for (let b = 0; b < 4; b++) {
       const y0 = (b * h) / 4, bh = h / 4, v = (b % 2) * 0.04;
-      g.fillStyle = `rgba(44,44,48,${0.25 + v})`; g.fillRect(0, y0, w, bh);
+      g.fillStyle = `rgba(150,112,66,${0.22 + v})`; g.fillRect(0, y0, w, bh);
       for (let i = 0; i < 48; i++) {
         const y = y0 + trnd() * bh;
-        g.fillStyle = trnd() < 0.65 ? `rgba(57,57,59,${0.03 + trnd() * 0.055})` : `rgba(219,219,221,${0.03 + trnd() * 0.04})`;
+        g.fillStyle = trnd() < 0.65 ? `rgba(104,74,40,${0.05 + trnd() * 0.07})` : `rgba(252,236,206,${0.06 + trnd() * 0.06})`;
         g.fillRect(0, y, w, 0.8 + trnd() * 1.8);
       }
       g.fillStyle = 'rgba(40,40,42,0.12)'; g.fillRect(0, y0, w, 1);
@@ -165,13 +165,13 @@ function makeTextures() {
 
   // Lawn, in greys (blended at two scales in the shader)
   T.grass = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#5d5e62'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 90, 'rgba(172,172,174,0.14)', 24, 110);
-    blotches(g, s, 90, 'rgba(62,62,64,0.15)', 22, 100);
-    blotches(g, s, 60, 'rgba(116,116,118,0.10)', 16, 70);
+    g.fillStyle = '#839b5c'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 90, 'rgba(176,196,130,0.16)', 24, 110);
+    blotches(g, s, 90, 'rgba(60,84,40,0.17)', 22, 100);
+    blotches(g, s, 60, 'rgba(150,150,86,0.12)', 16, 70);
     for (let i = 0; i < 28000; i++) {
       const r = trnd();
-      g.fillStyle = r < 0.45 ? 'rgba(51,51,53,0.24)' : r < 0.82 ? 'rgba(178,178,180,0.19)' : 'rgba(117,117,119,0.22)';
+      g.fillStyle = r < 0.45 ? 'rgba(52,76,34,0.24)' : r < 0.82 ? 'rgba(186,206,138,0.19)' : 'rgba(128,140,74,0.22)';
       const x = trnd() * s, y = trnd() * s;
       g.fillRect(x, y, 1 + (r > 0.85 ? 0.6 : 0), 2.2 + trnd() * 3.2);
     }
@@ -180,7 +180,7 @@ function makeTextures() {
 
   // Honed limestone / travertine terrace slabs in running ashlar bond (replaces 2x4 checkerboard)
   T.pave = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#d0d0cf'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#d3cdbf'; g.fillRect(0, 0, s, s);
     const rows = 6, rh = s / rows;
     for (let r = 0; r < rows; r++) {
       const shift = (r % 2) * (s * 0.28) + (r % 3) * (s * 0.11);
@@ -207,7 +207,7 @@ function makeTextures() {
 
   // bark
   T.bark = canvasTex(512, 512, (g, s) => {
-    g.fillStyle = '#3d3d40'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#6a5a4a'; g.fillRect(0, 0, s, s);
     blotches(g, s, 50, 'rgba(127,127,129,0.12)', 14, 60);
     blotches(g, s, 50, 'rgba(29,29,31,0.16)', 12, 55);
     for (let i = 0; i < 220; i++) {
@@ -220,19 +220,19 @@ function makeTextures() {
 
   // the painting on the gallery wall: a red sun, cut by a black arc
   T.art = canvasTex(1024, 683, (g, w, h) => {
-    g.fillStyle = '#eceae6'; g.fillRect(0, 0, w, h); blotches(g, w, 40, 'rgba(142,142,144,0.06)', 30, 160);
-    g.fillStyle = '#e5202e'; g.beginPath(); g.arc(w * 0.62, h * 0.46, h * 0.3, 0, 7); g.fill();
-    g.strokeStyle = '#131315'; g.lineWidth = 26; g.beginPath(); g.arc(w * 0.3, h * 1.1, h * 0.75, Math.PI * 1.25, Math.PI * 1.9); g.stroke();
-    g.fillStyle = 'rgba(36,36,38,0.85)'; g.fillRect(w * 0.12, h * 0.18, w * 0.05, h * 0.5);
+    g.fillStyle = '#f1eee6'; g.fillRect(0, 0, w, h); blotches(g, w, 40, 'rgba(142,142,144,0.06)', 30, 160);
+    g.fillStyle = '#c79a31'; g.beginPath(); g.arc(w * 0.62, h * 0.46, h * 0.3, 0, 7); g.fill();
+    g.strokeStyle = '#4c4239'; g.lineWidth = 26; g.beginPath(); g.arc(w * 0.3, h * 1.1, h * 0.75, Math.PI * 1.25, Math.PI * 1.9); g.stroke();
+    g.fillStyle = 'rgba(76,66,57,0.85)'; g.fillRect(w * 0.12, h * 0.18, w * 0.05, h * 0.5);
     grain(g, w, h, 14);
   });
 
   // the second painting, by the dining table: a red field, a black field, one grey line
   T.art2 = canvasTex(512, 680, (g, w, h) => {
-    g.fillStyle = '#eceae6'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f1eee6'; g.fillRect(0, 0, w, h);
     blotches(g, w, 30, 'rgba(122,122,124,0.07)', 20, 110);
-    g.fillStyle = '#e5202e'; g.fillRect(w * 0.16, h * 0.18, w * 0.46, h * 0.38);
-    g.fillStyle = '#141416'; g.fillRect(w * 0.44, h * 0.42, w * 0.38, h * 0.4);
+    g.fillStyle = '#70856a'; g.fillRect(w * 0.16, h * 0.18, w * 0.46, h * 0.38);
+    g.fillStyle = '#4c4239'; g.fillRect(w * 0.44, h * 0.42, w * 0.38, h * 0.4);
     g.strokeStyle = '#8d8d92'; g.lineWidth = 10;
     g.beginPath(); g.moveTo(w * 0.16, h * 0.74); g.lineTo(w * 0.82, h * 0.24); g.stroke();
     grain(g, w, h, 12);
@@ -304,16 +304,16 @@ export function realMaterials(env) {
   const R = {
     T,
     conc: std({ map: T.conc, bumpMap: T.conc, bumpScale: 0.011, roughness: 0.84 }),
-    plaster: std({ color: 0xf1f0ed, roughness: 0.93 }),
-    floorD: std({ color: 0x5a5a5f, roughness: 0.4, envMapIntensity: 0.6 }),
+    plaster: std({ color: 0xf4f1ea, roughness: 0.93 }),
+    floorD: std({ color: 0xa9a59b, roughness: 0.4, envMapIntensity: 0.6 }),
     oakD: std({ map: T.oak, bumpMap: T.oak, bumpScale: 0.005, roughness: 0.42 }),
     desk: std({ map: T.deskOak, bumpMap: T.deskOak, bumpScale: 0.004, roughness: 0.36, envMapIntensity: 0.65 }),
-    gravel: std({ color: 0x77777b, roughness: 0.98 }),
+    gravel: std({ color: 0xa59f92, roughness: 0.98 }),
     pave: std({ map: T.pave, bumpMap: T.pave, bumpScale: 0.008, roughness: 0.78 }),
-    steel: std({ color: 0x151517, metalness: 0.68, roughness: 0.36, envMapIntensity: 0.85 }),
-    red: std({ color: 0xc8121f, metalness: 0.2, roughness: 0.34, envMapIntensity: 0.8 }),
+    steel: std({ color: 0x4c4239, metalness: 0.68, roughness: 0.36, envMapIntensity: 0.85 }),
+    red: std({ color: 0x4c4239, metalness: 0.2, roughness: 0.34, envMapIntensity: 0.8 }),
     glass: new THREE.MeshPhysicalMaterial({
-      color: 0x1a1d22,
+      color: 0x5d7478,
       roughness: 0.03,
       metalness: 0.0,
       ior: 1.5,
@@ -324,34 +324,34 @@ export function realMaterials(env) {
       envMapIntensity: 0.92,
       depthWrite: false,
     }),
-    fabric: std({ color: 0xe9e8e5, roughness: 0.94 }),
-    rug: std({ color: 0x8d8d91, roughness: 0.96 }),
-    rugD: std({ color: 0x3b3b3f, roughness: 0.96 }),
-    black: std({ color: 0x19191c, roughness: 0.42, envMapIntensity: 0.6 }),
-    leather: std({ color: 0xb01420, roughness: 0.4, envMapIntensity: 0.65 }),
-    linen: std({ color: 0xf2f1ee, roughness: 0.9 }),
-    curtain: new THREE.MeshStandardMaterial({ color: 0xf2f1ee, roughness: 0.92, transparent: true, opacity: 0.76, side: THREE.DoubleSide }),
-    stone: std({ color: 0xdedddb, roughness: 0.28, envMapIntensity: 0.6 }),
-    white: std({ color: 0xf5f4f2, roughness: 0.24 }),
+    fabric: std({ color: 0xebe6da, roughness: 0.94 }),
+    rug: std({ color: 0xe0d8c6, roughness: 0.96 }),
+    rugD: std({ color: 0x70856a, roughness: 0.96 }),
+    black: std({ color: 0x4c4239, roughness: 0.42, envMapIntensity: 0.6 }),
+    leather: std({ color: 0xc79a31, roughness: 0.4, envMapIntensity: 0.65 }),
+    linen: std({ color: 0xf1eee4, roughness: 0.9 }),
+    curtain: new THREE.MeshStandardMaterial({ color: 0xf1eee4, roughness: 0.92, transparent: true, opacity: 0.76, side: THREE.DoubleSide }),
+    stone: std({ color: 0xd8d4ca, roughness: 0.28, envMapIntensity: 0.6 }),
+    white: std({ color: 0xf4f1ea, roughness: 0.24 }),
     shade: std({ color: 0xfffaf2, emissive: 0xfff0e0, emissiveIntensity: 0.52, roughness: 0.75, side: THREE.DoubleSide }),
-    leaf: patchFoliage(std({ color: 0x5b5d60, roughness: 0.78, envMapIntensity: 0.22 }), [0.10, 0.10, 0.11]),
-    leafDS: std({ color: 0x484a4d, roughness: 0.52, side: THREE.DoubleSide, envMapIntensity: 0.4 }),
-    leafDark: patchFoliage(std({ color: 0x353638, roughness: 0.82, envMapIntensity: 0.18 }), [0.06, 0.06, 0.07]),
-    maple: patchFoliage(std({ color: 0xb3141f, roughness: 0.72, envMapIntensity: 0.22 }), [0.30, 0.03, 0.04]),
+    leaf: patchFoliage(std({ color: 0x8a9a6c, roughness: 0.78, envMapIntensity: 0.22 }), [0.14, 0.13, 0.05]),
+    leafDS: std({ color: 0x78895c, roughness: 0.52, side: THREE.DoubleSide, envMapIntensity: 0.4 }),
+    leafDark: patchFoliage(std({ color: 0x65744f, roughness: 0.82, envMapIntensity: 0.18 }), [0.08, 0.08, 0.03]),
+    maple: patchFoliage(std({ color: 0xc79a31, roughness: 0.72, envMapIntensity: 0.22 }), [0.26, 0.18, 0.03]),
     bark: std({ map: T.bark, bumpMap: T.bark, bumpScale: 0.015, roughness: 0.92 }),
     land: patchLand(std({ map: T.grass, vertexColors: true, roughness: 0.96, envMapIntensity: 0.25 })),
-    redC: std({ color: 0xc41824, roughness: 0.86 }),
-    greyC: std({ color: 0x7e7e82, roughness: 0.86 }),
-    coalC: std({ color: 0x2a2a2d, roughness: 0.86 }),
-    charcoal: std({ color: 0x1c1c1f, roughness: 0.5 }),
-    ceramic: std({ color: 0xecebe8, roughness: 0.3, envMapIntensity: 0.65 }),
+    redC: std({ color: 0x70856a, roughness: 0.86 }),
+    greyC: std({ color: 0xbcb8af, roughness: 0.86 }),
+    coalC: std({ color: 0x4c4239, roughness: 0.86 }),
+    charcoal: std({ color: 0x5b5148, roughness: 0.5 }),
+    ceramic: std({ color: 0xece8de, roughness: 0.3, envMapIntensity: 0.65 }),
     art: std({ map: T.art, roughness: 0.85 }),
     art2: std({ map: T.art2, roughness: 0.85 }),
-    board: std({ color: 0x2b2b2e, roughness: 0.95 }),
-    basket: std({ color: 0x202023, roughness: 0.85 }),
-    trace: std({ color: 0xe9e8e4, roughness: 0.8 }),
+    board: std({ color: 0xb88d5e, roughness: 0.95 }),
+    basket: std({ color: 0x9c7d52, roughness: 0.85 }),
+    trace: std({ color: 0xe6e3da, roughness: 0.8 }),
     chrome: std({ color: 0xd9dadd, metalness: 0.9, roughness: 0.24, envMapIntensity: 1.0 }),
-    book0: std({ color: 0xb5151f }), book1: std({ color: 0x2b2c2f }), book2: std({ color: 0xe6e4e0 }), book3: std({ color: 0x8f8f93 }), book4: std({ color: 0x151517 }),
+    book0: std({ color: 0xc79a31 }), book1: std({ color: 0x70856a }), book2: std({ color: 0xece8de }), book3: std({ color: 0xbcb8af }), book4: std({ color: 0x4c4239 }),
   };
   return R;
 }
@@ -933,10 +933,10 @@ export function realTrees(R) {
 // Colours are linear and go through the renderer's tone mapping like everything else.
 export const SKY = {
   sunDir: { value: SUN_DIR },
-  zen: { value: new THREE.Color(0.36, 0.42, 0.52) },   // overhead
-  hor: { value: new THREE.Color(0.98, 0.96, 0.93) },   // the haze at the horizon
-  sun: { value: new THREE.Color(1.35, 1.22, 1.05) },   // the horizon under the sun, and its glow
-  low: { value: new THREE.Color(0.62, 0.62, 0.62) },   // below the horizon, where the land would be
+  zen: { value: new THREE.Color(0.485, 0.62, 0.745) },   // overhead
+  hor: { value: new THREE.Color(0.90, 0.77, 0.55) },   // the haze at the horizon
+  sun: { value: new THREE.Color(1.40, 1.12, 0.78) },   // the horizon under the sun, and its glow
+  low: { value: new THREE.Color(0.66, 0.62, 0.50) },   // below the horizon, where the land would be
 };
 const SKY_GLSL = `
   uniform vec3 sunDir, zen, hor, sun, low;

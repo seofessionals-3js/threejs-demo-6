@@ -55,7 +55,7 @@ step(0.3);
 
 await Promise.all(['500 20px "IBM Plex Mono"', '600 20px "Chakra Petch"'].map((f) => document.fonts.load(f).catch(() => {})));
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a0c);
+scene.background = new THREE.Color(0x323841);
 const pmrem = new THREE.PMREMGenerator(renderer);
 const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 pmrem.dispose();
@@ -124,7 +124,7 @@ scene.fog = new THREE.FogExp2(RW.SKY.low.value.clone(), 0.0011);
 const lamp = desk.lamp;
 SWEEP.C.value.copy(lamp.bulbPos);
 const SM = low ? { sun: [2048, 1024], spot: 2048 } : high ? { sun: [4096, 2048], spot: 4096 } : { sun: [2048, 1024], spot: 2048 };
-const sun = new THREE.DirectionalLight(0xfff2e6, 4.0);
+const sun = new THREE.DirectionalLight(0xffe4bc, 4.0);
 sun.position.copy(V(12, 1, -2)).addScaledVector(RW.SUN_DIR, 220); sun.target.position.set(12, 1, -2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(...SM.sun);
@@ -141,7 +141,7 @@ sun.shadow.autoUpdate = false;
 }
 scene.add(sun, sun.target);
 
-const spot = new THREE.SpotLight(0xfff3e6, 0, 0, 0.78, 0.55, 2);
+const spot = new THREE.SpotLight(0xffd9a0, 0, 0, 0.78, 0.55, 2);
 spot.position.copy(lamp.bulbPos).addScaledVector(lamp.aim, 1.5);
 spot.target.position.copy(lamp.aimAt);
 spot.castShadow = true;
@@ -151,7 +151,7 @@ spot.shadow.camera.near = 8; spot.shadow.camera.far = 240;
 spot.shadow.bias = -0.00005; spot.shadow.normalBias = 0.025;
 
 // Cool white moonlight from the studio window (ramps up when the desk lamp clicks off at the end)
-const moon = new THREE.DirectionalLight(0xd2d9e8, 0.5);
+const moon = new THREE.DirectionalLight(0xa9bcd8, 0.5);
 moon.position.set(90, 110, -150); moon.target.position.set(10, -6, 0);
 scene.add(moon, moon.target);
 
@@ -162,12 +162,12 @@ scene.add(fill, fill.target);
 
 // On a phone the rough surfaces carry no environment map (desk.js, lean): the hemispheres make up for its light.
 const ENVK = low ? 1.22 : 1;
-const hemi = new THREE.HemisphereLight(0x70747c, 0x8c8a88, 0.28); // night: the dark room above, the board's bounce below
+const hemi = new THREE.HemisphereLight(0x8494ac, 0x587862, 0.28); // night: the dark room above, the board's bounce below
 const hemiDay = new THREE.HemisphereLight(0xc6cad2, 0x7c7c80, 0.38);
 scene.add(hemi, hemiDay);
 
 // the lamp's spill on the wall behind, soft and without shadows
-const spill = new THREE.SpotLight(0xfff0e2, 0, 0, 0.95, 1, 2);
+const spill = new THREE.SpotLight(0xffd9a8, 0, 0, 0.95, 1, 2);
 spill.position.copy(lamp.head); spill.target.position.set(-72, 18, -60);
 
 // A glow inside the 1:100 card model that lights its rooms softly when the desk lamp clicks off

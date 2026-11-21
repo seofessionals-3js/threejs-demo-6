@@ -35,10 +35,9 @@ Worauf es mir ankommt:
   gebaut, und eine einzige Bauteilliste wird entweder als Karton oder in echten Materialien an
   denselben Koordinaten gerendert.
 - Karton und Haus werden getrennt beleuchtet: der Karton von der Lampe, das Haus von der Sonne.
-- Der Look: nur Schwarz, Weiß und ein Rot. Eine fast schwarze Seite #0a0a0c, weißer Karton
-  #f1eeea, graue Pappe für das Gelände, ein roter Akzent #e5202e. Auch das echte Haus bleibt in
-  dieser Palette: weißer Putz, schwarze Eiche, graue Wiese, rot sind nur Tür, Leder und ein
-  Ahorn. Chakra Petch für Überschriften, IBM Plex Mono für Beschriftungen, Passermarken in
+- Der Look: ein blaugraues Dämmeratelier #323841 mit grüner Schneidematte #2a7a57, weißer Karton 
+  #f5f2ea, graue Pappe für das Gelände, ein bernsteinfarbener Akzent #f2a531. Das echte Haus: weißer Putz, Eiche,
+  Bronzerahmen, gedämpfte Wiese, Moos und Senf als Textilien. Chakra Petch für Überschriften, IBM Plex Mono für Beschriftungen, Passermarken in
   den Ecken.
 - Die Kamera kommt nie näher als 40 cm an eine Fläche. Baue eine Prüfung ein, die das über den
   ganzen Weg misst.

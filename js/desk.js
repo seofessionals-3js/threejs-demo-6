@@ -58,8 +58,8 @@ function makeTextures() {
   const T = {};
   // white mount board: formation clouds, two fibre families and fine tooth, 1 tile = 4 cm on the desk
   T.card = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#f0efed'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 110, 'rgba(96,96,102,0.042)', 14, 72);
+    g.fillStyle = '#f5f2ea'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 110, 'rgba(96,92,86,0.042)', 14, 72);
     blotches(g, s, 80, 'rgba(255,255,255,0.075)', 10, 52);
     fibres(g, s, 6800, 10, ['rgba(84,84,90,0.085)', 'rgba(255,255,255,0.16)', 'rgba(118,118,124,0.065)'], 0.65);
     fibres(g, s, 3200, 4.5, ['rgba(70,70,76,0.07)', 'rgba(255,255,255,0.12)'], 0.45);
@@ -67,16 +67,16 @@ function makeTextures() {
   }, { tile: 4 });
   // greyboard: recycled fibre, pulp flecks, 1 tile = 6 cm
   T.board = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#8b8b8f'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#a69d90'; g.fillRect(0, 0, s, s);
     blotches(g, s, 140, 'rgba(40,40,44,0.07)', 10, 62);
     blotches(g, s, 95, 'rgba(206,206,210,0.07)', 10, 52);
     fibres(g, s, 8200, 7.5, ['rgba(36,36,40,0.18)', 'rgba(198,198,202,0.18)', 'rgba(112,112,118,0.22)'], 0.8);
-    for (let i = 0; i < 1100; i++) { g.fillStyle = ['rgba(22,22,25,0.52)', 'rgba(224,224,226,0.48)', 'rgba(92,94,100,0.36)', 'rgba(186,34,44,0.36)'][Math.floor(trnd() * 4)]; const r = 0.6 + trnd() * 1.7; g.fillRect(trnd() * s, trnd() * s, r, r * (0.5 + trnd())); }
+    for (let i = 0; i < 1100; i++) { g.fillStyle = ['rgba(22,22,25,0.52)', 'rgba(224,224,226,0.48)', 'rgba(92,94,100,0.36)', 'rgba(150,98,58,0.34)'][Math.floor(trnd() * 4)]; const r = 0.6 + trnd() * 1.7; g.fillRect(trnd() * s, trnd() * s, r, r * (0.5 + trnd())); }
     grain(g, s, s, 13);
   }, { tile: 6 });
   // cut greyboard edge: pressed-pulp strata, vertical blade score micro-lines, and top-edge crush highlight
   T.burn = canvasTex(512, 512, (g, s) => {
-    g.fillStyle = '#58585c'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#6f675c'; g.fillRect(0, 0, s, s);
     for (let y = 0; y < s; y += 2) {
       g.fillStyle = `rgba(${trnd() < 0.5 ? '24,24,27' : '150,150,155'},${0.10 + trnd() * 0.16})`;
       g.fillRect(0, y, s, 1 + trnd() * 2.2);
@@ -99,10 +99,10 @@ function makeTextures() {
   // the cutting mat: 150 x 110 cm, a 1 cm grid, numbers, angle lines
   T.mat = canvasTex(4096, 3004, (g, w, h) => {
     const k = w / 150;
-    g.fillStyle = '#17171a'; g.fillRect(0, 0, w, h);
-    blotches(g, w, 40, 'rgba(0,0,0,0.16)', 80, 300);
+    g.fillStyle = '#2a7a57'; g.fillRect(0, 0, w, h);
+    blotches(g, w, 40, 'rgba(10,60,38,0.18)', 80, 300);
     // subtle knife score marks on the self-healing mat near the model
-    g.strokeStyle = 'rgba(70,70,76,0.5)'; g.lineWidth = 1.2;
+    g.strokeStyle = 'rgba(22,80,56,0.55)'; g.lineWidth = 1.2;
     for (let i = 0; i < 45; i++) {
       const sx = w * (0.25 + trnd() * 0.5), sy = h * (0.25 + trnd() * 0.5), ang = (trnd() - 0.5) * 0.4, len = 40 + trnd() * 180;
       g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.cos(ang) * len, sy + Math.sin(ang) * len); g.stroke();
@@ -111,32 +111,32 @@ function makeTextures() {
     g.save(); g.beginPath(); g.rect(m0, m0, w - 2 * m0, h - 2 * m0); g.clip();
     for (let i = 0; i <= 150; i++) {
       const x = i * k, major = i % 10 === 0, mid = i % 5 === 0;
-      g.fillStyle = major ? 'rgba(236,234,230,0.62)' : mid ? 'rgba(236,234,230,0.42)' : 'rgba(236,234,230,0.22)';
+      g.fillStyle = major ? 'rgba(207,230,214,0.5)' : mid ? 'rgba(207,230,214,0.36)' : 'rgba(207,230,214,0.24)';
       g.fillRect(x - (major ? 1.6 : 0.8), 0, major ? 3.2 : 1.6, h);
     }
     for (let j = 0; j <= 110; j++) {
       const y = j * k, major = j % 10 === 0, mid = j % 5 === 0;
-      g.fillStyle = major ? 'rgba(236,234,230,0.62)' : mid ? 'rgba(236,234,230,0.42)' : 'rgba(236,234,230,0.22)';
+      g.fillStyle = major ? 'rgba(207,230,214,0.5)' : mid ? 'rgba(207,230,214,0.36)' : 'rgba(207,230,214,0.24)';
       g.fillRect(0, y - (major ? 1.6 : 0.8), w, major ? 3.2 : 1.6);
     }
-    g.strokeStyle = 'rgba(236,234,230,0.35)'; g.lineWidth = 2;
+    g.strokeStyle = 'rgba(207,230,214,0.3)'; g.lineWidth = 2;
     for (const a of [45, 60, 30]) { g.beginPath(); g.moveTo(m0, h - m0); g.lineTo(m0 + Math.cos(a * Math.PI / 180) * 3000, h - m0 - Math.sin(a * Math.PI / 180) * 3000); g.stroke(); }
     g.restore();
-    g.fillStyle = 'rgba(236,234,230,0.7)'; g.font = `500 ${Math.round(k * 0.62)}px "IBM Plex Mono", monospace`; g.textAlign = 'center';
+    g.fillStyle = 'rgba(207,230,214,0.62)'; g.font = `500 ${Math.round(k * 0.62)}px "IBM Plex Mono", monospace`; g.textAlign = 'center';
     for (let i = 4; i < 147; i++) { g.fillText(String(i - 3), i * k, m0 - k * 0.6); g.fillText(String(i - 3), i * k, h - m0 + k * 1.2); }
     g.textAlign = 'right';
     for (let j = 4; j < 107; j++) g.fillText(String(j - 3), m0 - k * 0.5, j * k + k * 0.2);
     g.font = `600 ${Math.round(k * 0.9)}px "Chakra Petch", sans-serif`; g.textAlign = 'left';
-    g.fillStyle = 'rgba(232,40,52,0.92)';
+    g.fillStyle = 'rgba(242,165,49,0.95)';
     g.fillText('SELBSTHEILENDE  A0  SCHNEIDEMATTE', m0 + k * 4, h - m0 + k * 2.6);
     grain(g, w, h, 6);
   });
   // a desk of black-stained oak
   T.desk = canvasTex(2048, 1024, (g, w, h) => {
-    g.fillStyle = '#1a1a1d'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#cfb58a'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 700; i++) {
       const y = trnd() * h, a = 0.03 + trnd() * 0.09;
-      g.strokeStyle = `rgba(${trnd() < 0.6 ? '4,4,6' : '84,84,92'},${a})`; g.lineWidth = 0.6 + trnd() * 2.2;
+      g.strokeStyle = `rgba(${trnd() < 0.6 ? '128,96,58' : '244,230,200'},${a})`; g.lineWidth = 0.6 + trnd() * 2.2;
       g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 64) g.lineTo(x, y + Math.sin(x * 0.004 + y) * 6 + (trnd() - 0.5) * 1.5); g.stroke();
     }
     grain(g, w, h, 8);
@@ -224,8 +224,8 @@ export function makeMaterials(env) {
   const T = makeTextures();
   const std = (o) => new THREE.MeshStandardMaterial(lean(Object.assign({ roughness: 0.9, metalness: 0, envMap: env, envMapIntensity: 0.16 }, o)));
   const M = { T };
-  M.card = withCore(std({ color: 0xf3f2f0, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91, keepBump: true }), new THREE.Color(0.80, 0.80, 0.82));
-  M.cardPlain = std({ color: 0xf3f2f0, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 });
+  M.card = withCore(std({ color: 0xf5f2ea, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91, keepBump: true }), new THREE.Color(0.80, 0.80, 0.82));
+  M.cardPlain = std({ color: 0xf5f2ea, map: T.card, bumpMap: T.card, bumpScale: 0.065, roughness: 0.91 });
   M.acetate = new THREE.MeshPhysicalMaterial({
     color: 0xeef1f5, roughness: 0.04, metalness: 0.04, clearcoat: 1.0, clearcoatRoughness: 0.03,
     ior: 1.56, reflectivity: 0.9, transparent: true, opacity: 0.21, envMap: env, envMapIntensity: 1.9,
@@ -235,29 +235,30 @@ export function makeMaterials(env) {
   M.burn = std({ color: 0xffffff, map: T.burn, bumpMap: T.burn, bumpScale: 0.045, roughness: 0.84, envMapIntensity: 0.18 });
   M.figure = std({ color: 0xf0efed, map: T.card, bumpMap: T.card, bumpScale: 0.025, roughness: 0.62, envMapIntensity: 0.22 });
   M.mat = std({ map: T.mat, bumpMap: T.mat, bumpScale: 0.015, roughness: 0.78, envMapIntensity: 0.14 });
-  M.matEdge = std({ color: 0x0e0e10, roughness: 0.82 });
+  M.matEdge = std({ color: 0x1f5c43, roughness: 0.82 });
   M.desk = std({ map: T.desk, bumpMap: T.desk, bumpScale: 0.03, roughness: 0.52, envMapIntensity: 0.2 });
   M.rule = std({ color: 0xe6ebf0, map: T.rule, roughnessMap: T.ruleRough, bumpMap: T.ruleRough, bumpScale: 0.018, metalness: 0.52, roughness: 0.34, envMapIntensity: 1.45 });
   M.steel = std({ color: 0xd4d9de, metalness: 0.62, roughness: 0.28, envMapIntensity: 1.25 });
   M.blade = std({ color: 0xe8ecef, metalness: 0.78, roughness: 0.16, envMapIntensity: 1.65 });
-  M.pencil = std({ color: 0xcf1f2b, roughness: 0.42 });
-  M.pencilStripe = std({ color: 0x1c1b1a, roughness: 0.42 });
+  M.pencil = std({ color: 0xf2a531, roughness: 0.42 });
+  M.pencilStripe = std({ color: 0x2f3a44, roughness: 0.42 });
   M.wood = std({ color: 0xd9cfc2, roughness: 0.78 });
   M.lead = std({ color: 0x2b2b2b, roughness: 0.35, metalness: 0.35 });
   M.trace = std({ color: 0xe9e8e4, map: T.card, roughness: 0.82, transparent: true, opacity: 0.93 });
-  M.lamp = std({ color: 0x1b1c1f, roughness: 0.28, metalness: 0.76, envMapIntensity: 1.05 });
-  M.lampRim = std({ color: 0x1b1c1f, roughness: 0.26, metalness: 0.76, envMapIntensity: 1.0, emissive: 0xfff0e2, emissiveIntensity: 0 }); // the lip of the shade, lit from inside
+  M.lamp = std({ color: 0xc7a04a, roughness: 0.3, metalness: 0.8, envMapIntensity: 1.05 });
+  M.lampRim = std({ color: 0xc7a04a, roughness: 0.26, metalness: 0.76, envMapIntensity: 1.0, emissive: 0xfff0e2, emissiveIntensity: 0 }); // the lip of the shade, lit from inside
   M.lampInner = new THREE.MeshStandardMaterial({ color: 0xf4f3f0, roughness: 0.38, emissive: 0xfff1e4, emissiveIntensity: 0, side: THREE.BackSide });
   M.spring = std({ color: 0xa6abb0, metalness: 0.92, roughness: 0.28, envMapIntensity: 0.85 });
   M.bulb = new THREE.MeshStandardMaterial({ color: 0x222018, emissive: 0xfff4ea, emissiveIntensity: 0, roughness: 0.25 });
   M.mug = std({ color: 0xeceae6, roughness: 0.22, envMapIntensity: 0.4 });
   M.coffee = std({ color: 0x1e120b, roughness: 0.08, envMapIntensity: 0.65 });
-  M.wall = std({ color: 0x1c1c1f, roughness: 0.98, envMapIntensity: 0.05 });
-  M.pin = std({ color: 0xe5202e, roughness: 0.32 });
+  M.wall = std({ color: 0x55606e, roughness: 0.98, envMapIntensity: 0.05 });
+  M.cork = std({ color: 0xb88d5e, roughness: 0.97, envMapIntensity: 0.05 });
+  M.pin = std({ color: 0xf2a531, roughness: 0.32 });
   M.tape = std({ color: 0xe4e2dd, roughness: 0.88, transparent: true, opacity: 0.85 });
   M.night = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
-  M.frame = std({ color: 0x1b1a19, roughness: 0.7 });
-  M.book1 = std({ color: 0xb5151f, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.78 });
+  M.frame = std({ color: 0x4c4239, roughness: 0.7 });
+  M.book1 = std({ color: 0x70856a, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.78 });
   M.book2 = std({ color: 0xe4e2dd, map: T.card, bumpMap: T.card, bumpScale: 0.02, roughness: 0.82 });
   return M;
 }
@@ -591,9 +592,9 @@ export function sheetMaterial(kind, trace, set = 'studio') {
   return SHEET_MATS.get(key);
 }
 function drawSheet(g, W, H, kind, trace) {
-  g.fillStyle = trace ? '#d4d3cf' : '#eceae6'; g.fillRect(0, 0, W, H);
+  g.fillStyle = trace ? '#dcdad2' : '#f1eee6'; g.fillRect(0, 0, W, H);
   blotches(g, Math.max(W, H), 30, trace ? 'rgba(86,86,92,0.05)' : 'rgba(110,110,116,0.04)', 40, 160);
-  const ink = 'rgba(16,16,18,0.92)', thin = 'rgba(16,16,18,0.55)', red = 'rgba(226,30,44,0.92)', paper = trace ? '#d4d3cf' : '#eceae6';
+  const ink = 'rgba(38,43,50,0.92)', thin = 'rgba(38,43,50,0.55)', red = 'rgba(214,134,26,0.95)', paper = trace ? '#dcdad2' : '#f1eee6';
   g.strokeStyle = ink; g.lineWidth = 4; g.strokeRect(36, 36, W - 72, H - 72);
   // title block
   g.strokeRect(W - 360, H - 150, 324, 114); g.beginPath(); g.moveTo(W - 360, H - 106); g.lineTo(W - 36, H - 106); g.stroke();
@@ -632,7 +633,7 @@ function drawSheet(g, W, H, kind, trace) {
   } else if (kind === 'section') {
     const cz = 0.6; // the cut runs through the door, the void and the rooflight; we look west
     draw(-3, 36, -4.6, 8.6, (X, Y, k) => {
-      g.fillStyle = 'rgba(16,16,18,0.12)';
+      g.fillStyle = 'rgba(38,43,50,0.12)';
       g.beginPath(); g.moveTo(X(-3), Y(G)); g.lineTo(X(21.75), Y(G)); g.lineTo(X(32.25), Y(G - FALL)); g.lineTo(X(36), Y(G - FALL)); g.lineTo(X(36), Y(-4.4)); g.lineTo(X(-3), Y(-4.4)); g.closePath(); g.fill();
       const R = (b) => [X(b[0]), Y(b[4]), (b[3] - b[0]) * k, (b[4] - b[1]) * k];
       for (const p of parts) { const b = p.b; if (b[5] <= cz && b[5] > -6.8 && (p.k === 'struct' || p.k === 'furn' || p.k === 'stair') && p.ph > 1) { g.strokeStyle = thin; g.lineWidth = 2.2; g.strokeRect(...R(b)); } }
@@ -684,8 +685,12 @@ function studioWalls(M) {
     ['z', -40, 15, 48, 'elev', false], ['z', 12, 18, 40, 'plan', true], ['z', 62, 14, 44, 'site', false], ['z', -10, 58, 42, 'section', false],
     ['z', 114, 16, 46, 'plan', false], ['z', 88, 56, 40, 'elev', true],
     ['fx', -28, 18, 52, 'section', false], ['fx', 28, 16, 46, 'plan', true], ['fx', 82, 20, 48, 'site', false], ['fx', 4, 62, 44, 'elev', false]];
+  const corks = [];
   for (const [wall, u, v, w, kind, trace] of sheets) {
     const h = w / 1.414, m = sheetMaterial(kind, trace);
+    const cg = new THREE.PlaneGeometry(w + 8, h + 8); cg.translate(0, 0, 0.2); // the cork board behind each sheet
+    if (wall === 'x') { cg.rotateY(Math.PI / 2); cg.translate(-72, v, u); } else if (wall === 'fx') { cg.rotateY(-Math.PI / 2); cg.translate(190, v, u); } else cg.translate(u, v, -84);
+    corks.push(cg);
     const tilt = (rnd() - 0.5) * 0.025;
     const geo = new THREE.PlaneGeometry(w, h); geo.rotateZ(tilt);
     const pin = (du, dv) => { const p = new THREE.SphereGeometry(0.55, 12, 8); p.translate(du, dv, 0.5); return p; };
@@ -697,5 +702,6 @@ function studioWalls(M) {
       put(geo2, mat);
     }
   }
+  put(mergeGeometries(corks), M.cork);
   return g;
 }
