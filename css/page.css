@@ -251,3 +251,14 @@ body.direct .vig { display: block; }
   #loader .lbrand::after { font-size: 9.5px; }
   #loader .lfoot { left: 18px; bottom: 22px; font-size: 8.5px; }
 }
+
+/* phone landscape: the closing section has to fit 412 px of height */
+@media (max-height: 520px) and (orientation: landscape) {
+  .end { padding-top: 64px; padding-bottom: 46px; }
+  .end h2 { font-size: 34px; }
+  .end .eyebrow, .end .lede { display: none; }
+  .end .ctas { margin-top: 14px; }
+  .end .mail { margin: 10px 0 0 2px; font-size: 15px; }
+  .end .meta { bottom: 12px; font-size: 8px; gap: 12px; }
+  .end .meta span:nth-child(2) { display: none; }
+}

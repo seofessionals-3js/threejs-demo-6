@@ -117,7 +117,7 @@ const studioMeshes = sweepSide(desk.group, 'studio', { seam: 0.7 });
 const cardMeshes = sweepSide(cardRoot, 'card');
 const realMeshes = [real.group, land, rtrees, stage].flatMap((o) => sweepSide(o, 'real'));
 for (const o of [...cardMeshes, ...studioMeshes]) for (const m of [].concat(o.material)) m.fog = false;
-scene.fog = new THREE.FogExp2(RW.SKY.low.value.clone(), 0.0011);
+scene.fog = new THREE.FogExp2(new THREE.Color(0.92, 0.74, 0.48), 0.0005);
 
 // ---------------------------------------------------------------- light
 // directional order matters (sweep.js): the sun casts shadows so it comes first, then the moon, then the fill

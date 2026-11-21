@@ -99,7 +99,7 @@ function makeTextures() {
   // the cutting mat: 150 x 110 cm, a 1 cm grid, numbers, angle lines
   T.mat = canvasTex(4096, 3004, (g, w, h) => {
     const k = w / 150;
-    g.fillStyle = '#2a7a57'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#4a8d6e'; g.fillRect(0, 0, w, h);
     blotches(g, w, 40, 'rgba(10,60,38,0.18)', 80, 300);
     // subtle knife score marks on the self-healing mat near the model
     g.strokeStyle = 'rgba(22,80,56,0.55)'; g.lineWidth = 1.2;
@@ -234,7 +234,7 @@ export function makeMaterials(env) {
   M.board = std({ color: 0xffffff, map: T.board, bumpMap: T.board, bumpScale: 0.06, roughness: 0.94, envMapIntensity: 0.14 });
   M.burn = std({ color: 0xffffff, map: T.burn, bumpMap: T.burn, bumpScale: 0.045, roughness: 0.84, envMapIntensity: 0.18 });
   M.figure = std({ color: 0xf0efed, map: T.card, bumpMap: T.card, bumpScale: 0.025, roughness: 0.62, envMapIntensity: 0.22 });
-  M.mat = std({ map: T.mat, bumpMap: T.mat, bumpScale: 0.015, roughness: 0.78, envMapIntensity: 0.14 });
+  M.mat = std({ emissive: 0x16382c, map: T.mat, bumpMap: T.mat, bumpScale: 0.015, roughness: 0.78, envMapIntensity: 0.14 });
   M.matEdge = std({ color: 0x1f5c43, roughness: 0.82 });
   M.desk = std({ map: T.desk, bumpMap: T.desk, bumpScale: 0.03, roughness: 0.52, envMapIntensity: 0.2 });
   M.rule = std({ color: 0xe6ebf0, map: T.rule, roughnessMap: T.ruleRough, bumpMap: T.ruleRough, bumpScale: 0.018, metalness: 0.52, roughness: 0.34, envMapIntensity: 1.45 });

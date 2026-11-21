@@ -165,7 +165,7 @@ function makeTextures() {
 
   // Lawn, in greys (blended at two scales in the shader)
   T.grass = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#839b5c'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#92ad5f'; g.fillRect(0, 0, s, s);
     blotches(g, s, 90, 'rgba(176,196,130,0.16)', 24, 110);
     blotches(g, s, 90, 'rgba(60,84,40,0.17)', 22, 100);
     blotches(g, s, 60, 'rgba(150,150,86,0.12)', 16, 70);
@@ -933,10 +933,10 @@ export function realTrees(R) {
 // Colours are linear and go through the renderer's tone mapping like everything else.
 export const SKY = {
   sunDir: { value: SUN_DIR },
-  zen: { value: new THREE.Color(0.485, 0.62, 0.745) },   // overhead
-  hor: { value: new THREE.Color(0.90, 0.77, 0.55) },   // the haze at the horizon
-  sun: { value: new THREE.Color(1.40, 1.12, 0.78) },   // the horizon under the sun, and its glow
-  low: { value: new THREE.Color(0.66, 0.62, 0.50) },   // below the horizon, where the land would be
+  zen: { value: new THREE.Color(0.30, 0.50, 0.82) },   // overhead
+  hor: { value: new THREE.Color(1.05, 0.72, 0.40) },   // the haze at the horizon
+  sun: { value: new THREE.Color(1.75, 1.25, 0.68) },   // the horizon under the sun, and its glow
+  low: { value: new THREE.Color(0.80, 0.68, 0.44) },   // below the horizon, where the land would be
 };
 const SKY_GLSL = `
   uniform vec3 sunDir, zen, hor, sun, low;
@@ -945,7 +945,7 @@ const SKY_GLSL = `
     float sd = max(dot(d, sunDir), 0.), toward = pow(max(dot(normalize(d.xz + 1e-4), normalize(sunDir.xz)), 0.), 2.);
     vec3 col = mix(mix(hor, sun, toward * 0.6), zen, pow(clamp(h, 0., 1.), 0.46));
     col = mix(col, low, smoothstep(0.0, -0.10, h));
-    col += sun * (pow(sd, 7.) * 0.22 + pow(sd, 120.) * 0.7);
+    col += sun * (pow(sd, 7.) * 0.22 + pow(sd, 60.) * 0.45);
     col += sun * 18. * smoothstep(0.99955, 0.9998, sd);
     return col;
   }`;
