@@ -14,7 +14,12 @@
 html, body { margin: 0; background: #0a0a0c; color: var(--paper); }
 body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 body.locked { overflow: hidden; }
-#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+/* as tall as the largest viewport: a phone's address bar sliding away never resizes the picture */
+#gl { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; }
+/* on a phone the picture is drawn in one pass, so the lens's vignette is laid over it here */
+.vig { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; pointer-events: none; display: none;
+  background: radial-gradient(125% 90% at 50% 48%, rgba(6, 6, 8, 0) 52%, rgba(6, 6, 8, .2) 78%, rgba(6, 6, 8, .46) 100%); }
+body.direct .vig { display: block; }
 .story { position: relative; z-index: 0; pointer-events: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -230,7 +235,8 @@ body.locked { overflow: hidden; }
   .room.study-room { left: 18px; right: auto; top: auto; bottom: 9vh; }
   .room b { font-size: 24px; }
   .room .lv, .room .nt { font-size: 8.5px; }
-  .back-line { top: 8.5vh; font-size: 32px; }
+  .back-line { top: 8.5vh; font-size: 32px; line-height: 1.12; padding: 0 18px; }
+  .back-line em { display: table; margin: 6px auto 0; }
   .end { padding: 0 18px 11vh; justify-content: flex-end; background: linear-gradient(to top, rgba(6, 6, 8, .78), rgba(6, 6, 8, 0) 68%); }
   .end h2 { font-size: 36px; white-space: normal; }
   .end .eyebrow { font-size: 9px; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }

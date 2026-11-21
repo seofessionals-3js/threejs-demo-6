@@ -2,18 +2,16 @@
 // the turn (the card becomes the house, the lamp becomes the sun), the walk in through the big door and up to the study, and back to the desk.
 // Everything on screen is a function of two numbers: t (seconds since the page started) and the scroll.
 // Live, t is the clock. With ?rec the recorder sets both, one frame at a time (window.__rig.frame).
+//
+// Quality (js/quality.js): a phone draws one pass straight to the canvas at a governed resolution, a tablet adds the
+// lens blur and the bloom, a desktop the ambient occlusion on top. Nothing is drawn while nothing changes.
+// ?q=low|mid|high forces the tier, ?dpr=1.5 pins the resolution.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { tier, low, high, pinnedDpr, startDpr, governor, onStableResize } from './quality.js';
 import * as D from './desk.js';
 import * as RW from './real.js';
-import { SWEEP, sweepSide } from './sweep.js';
+import { SWEEP, SHADOW, sweepSide } from './sweep.js';
 import { DOOR } from './house.js';
 
 const Q = new URLSearchParams(location.search);
@@ -33,26 +31,34 @@ const pw = (x, pts) => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 0; i
 const CAMQ = Q.get('cam') ? Q.get('cam').split(',').map(Number) : null;
 const step = (p) => { if (!REC) L.target = Math.max(L.target, p); };
 
-let phone = innerWidth < 760 || innerWidth / innerHeight < 0.8;
-
-// ---------------------------------------------------------------- renderer and scene
+// ---------------------------------------------------------------- size, tier, renderer
+// The canvas is as tall as the largest viewport (100lvh), so a phone's address bar sliding away never resizes or stretches the picture.
 const canvas = document.getElementById('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: REC });
-let dpr = Q.has('dpr') ? +Q.get('dpr') : REC ? devicePixelRatio : Math.min(devicePixelRatio, phone ? 2 : 1.75);
+let W = canvas.clientWidth || innerWidth, H = canvas.clientHeight || innerHeight;
+let phone = W < 760 || W / H < 0.8;
+const LOD = low ? 0 : high ? 2 : 1;
+const DIRECT = low; // one pass, straight to the canvas with multisampling: no lens blur, bloom or grain
+document.body.classList.add('q-' + tier);
+if (DIRECT) document.body.classList.add('direct');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: DIRECT, powerPreference: 'high-performance', preserveDrawingBuffer: REC, stencil: false });
+let dpr = REC && pinnedDpr == null ? devicePixelRatio : startDpr();
 renderer.setPixelRatio(dpr);
-renderer.setSize(innerWidth, innerHeight, false);
+renderer.setSize(W, H, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.02;
-D.setAniso(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
+D.setQuality({ tex: low ? 0.5 : 1, aniso: Math.min(low ? 4 : 8, renderer.capabilities.getMaxAnisotropy()), low, lod: LOD });
 step(0.3);
 
 await Promise.all(['500 20px "IBM Plex Mono"', '600 20px "Chakra Petch"'].map((f) => document.fonts.load(f).catch(() => {})));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0c);
-const env = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const pmrem = new THREE.PMREMGenerator(renderer);
+const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+pmrem.dispose();
 const M = D.makeMaterials(env);
 // a copy of the card materials for the little model on the study desk, which lives in the daylight world
 const keep = (m) => { const c = m.clone(); c.onBeforeCompile = m.onBeforeCompile; c.customProgramCacheKey = m.customProgramCacheKey; return c; };
@@ -60,66 +66,87 @@ const Mtiny = {};
 for (const k of ['card', 'cardPlain', 'acetate', 'board', 'burn', 'figure', 'mat', 'rule', 'lamp', 'lampInner', 'lampRim', 'bulb', 'spring']) Mtiny[k] = keep(M[k]);
 step(0.42);
 
+// the studio: the desk and everything on it, the walls and the drawings. One mesh per material.
 const desk = D.deskProps(M);
+// the card model. Its pieces drop in one by one while the hero builds; once they rest, one merged twin is drawn in their place.
 const house = D.cardHouse(M);
 const layers = D.contourLayers(M);
 const trees = D.modelTrees(M);
 const figs = D.modelFigures(M);
-scene.add(desk.group, house, ...layers, ...trees, ...figs);
+const heroFig = figs[figs.length - 1];
+const pieces = new THREE.Group();
+pieces.add(...layers, ...trees, ...figs.slice(0, -1));
+const rest = D.mergeStatic(pieces, { copy: true });
+rest.visible = false;
+const cardRoot = new THREE.Group();
+cardRoot.add(house, pieces, rest, heroFig);
+scene.add(desk.group, cardRoot);
 step(0.52);
 
 // the daylight world
 const skyEnv = RW.skyEnv(renderer);
 const R = RW.realMaterials(skyEnv);
-for (const k in Mtiny) { Mtiny[k].envMap = skyEnv; }
+for (const k in Mtiny) { if (Mtiny[k].envMap) Mtiny[k].envMap = skyEnv; }
 const real = RW.realHouse(R);
-const land = RW.terrain(R, phone);
-const rtrees = RW.realTrees(R, phone);
+const land = RW.terrain(R, LOD);
+const rtrees = RW.realTrees(R);
 const stage = RW.staging(R, Mtiny);
-const sky = RW.skyDome(SWEEP);
-sky.visible = false;
-scene.add(real.group, land, rtrees, stage);
+const sky = RW.skyDome();
+const realRoot = new THREE.Group();
+realRoot.add(real.group, land, rtrees, stage, sky);
+scene.add(realRoot);
 step(0.68);
 
 // materials that fade in during the build get their own copies
 const own = (m) => { const c = keep(m); c.userData.base = { transparent: m.transparent, opacity: m.opacity }; return c; };
 for (const l of layers) l.material = l.material.map(own);
 for (const c of house.children) c.material = own(c.material);
+const acetate = house.children[1].material;
 const treeMat = own(M.card);
 for (const t of trees) t.material = treeMat;
-const heroFig = figs[figs.length - 1];
 heroFig.material = own(heroFig.material);
+for (const m of [...rest.children, ...figs.slice(0, -1)]) m.material = Array.isArray(m.material) ? m.material.map(keep) : keep(m.material); // the offcuts on the desk keep the originals
 function fade(mat, k) {
   const b = mat.userData.base, tr = b.transparent || k < 0.999;
   if (mat.transparent !== tr) { mat.transparent = tr; mat.needsUpdate = true; }
   mat.opacity = b.opacity * k; mat.depthWrite = !b.transparent && k > 0.5;
 }
 
-// two sides of one front (see sweep.js): studio environment (walls, pinned drawings, desk props) gets seam: 0 so it never discards or draws a red ring
-const studioMeshes = sweepSide(desk.group, 'card', { seam: 0 });
-const cardMeshes = [house, ...layers, ...trees, ...figs].flatMap((o) => sweepSide(o, 'card'));
+// three sides of the fronts (see sweep.js): the card model, the house, and the studio round them both
+const studioMeshes = sweepSide(desk.group, 'studio', { seam: 0.7 });
+const cardMeshes = sweepSide(cardRoot, 'card');
 const realMeshes = [real.group, land, rtrees, stage].flatMap((o) => sweepSide(o, 'real'));
-const buildSet = new Set([...layers, ...trees, ...figs]);
 for (const o of [...cardMeshes, ...studioMeshes]) for (const m of [].concat(o.material)) m.fog = false;
-scene.fog = new THREE.FogExp2(new THREE.Color(0.07, 0.07, 0.075), 0.00035);
+scene.fog = new THREE.FogExp2(RW.SKY.low.value.clone(), 0.0011);
 
 // ---------------------------------------------------------------- light
 // directional order matters (sweep.js): the sun casts shadows so it comes first, then the moon, then the fill
 const lamp = desk.lamp;
 SWEEP.C.value.copy(lamp.bulbPos);
+const SM = low ? { sun: [2048, 1024], spot: 2048 } : high ? { sun: [4096, 2048], spot: 4096 } : { sun: [2048, 1024], spot: 2048 };
 const sun = new THREE.DirectionalLight(0xfff2e6, 4.0);
 sun.position.copy(V(12, 1, -2)).addScaledVector(RW.SUN_DIR, 220); sun.target.position.set(12, 1, -2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(phone ? 2048 : 4096, phone ? 2048 : 4096);
-Object.assign(sun.shadow.camera, { left: -46, right: 46, top: 40, bottom: -40, near: 120, far: 330 });
-sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.035;
+sun.shadow.mapSize.set(...SM.sun);
+sun.shadow.autoUpdate = false;
+{ // the sun's map holds the house, its garden and the trees round it, and nothing else: fit the box (x -16..46, y -6..11, z -24..20)
+  const z = sun.position.clone().sub(sun.target.position).normalize(), x = V(0, 1, 0).cross(z).normalize(), y = z.clone().cross(x);
+  let l = 1e9, r = -1e9, b = 1e9, t = -1e9, n = 1e9, f = -1e9;
+  for (const cx of [-16, 46]) for (const cy of [-6, 11]) for (const cz of [-24, 20]) {
+    const d = V(cx, cy, cz).sub(sun.position), u = d.dot(x), v = d.dot(y), w = -d.dot(z);
+    l = Math.min(l, u); r = Math.max(r, u); b = Math.min(b, v); t = Math.max(t, v); n = Math.min(n, w); f = Math.max(f, w);
+  }
+  Object.assign(sun.shadow.camera, { left: l, right: r, top: t, bottom: b, near: n - 4, far: f + 4 });
+  sun.shadow.bias = -0.05 / (f - n + 8); sun.shadow.normalBias = 0.035;
+}
 scene.add(sun, sun.target);
 
 const spot = new THREE.SpotLight(0xfff3e6, 0, 0, 0.78, 0.55, 2);
 spot.position.copy(lamp.bulbPos).addScaledVector(lamp.aim, 1.5);
 spot.target.position.copy(lamp.aimAt);
 spot.castShadow = true;
-spot.shadow.mapSize.set(phone ? 2048 : 4096, phone ? 2048 : 4096);
+spot.shadow.mapSize.set(SM.spot, SM.spot);
+spot.shadow.autoUpdate = false;
 spot.shadow.camera.near = 8; spot.shadow.camera.far = 240;
 spot.shadow.bias = -0.00005; spot.shadow.normalBias = 0.025;
 
@@ -133,6 +160,8 @@ const fill = new THREE.DirectionalLight(0xfff0e4, 0);
 fill.position.set(130, 42, 105); fill.target.position.set(10, -5, 0);
 scene.add(fill, fill.target);
 
+// On a phone the rough surfaces carry no environment map (desk.js, lean): the hemispheres make up for its light.
+const ENVK = low ? 1.22 : 1;
 const hemi = new THREE.HemisphereLight(0x70747c, 0x8c8a88, 0.28); // night: the dark room above, the board's bounce below
 const hemiDay = new THREE.HemisphereLight(0xc6cad2, 0x7c7c80, 0.38);
 scene.add(hemi, hemiDay);
@@ -158,14 +187,12 @@ function setLamp(k, endGlow = 0) {
   M.bulb.emissiveIntensity = 16 * k;
   M.lampInner.emissiveIntensity = 0.52 * k;
   M.lampRim.emissiveIntensity = 1.65 * k;
-  hemi.intensity = 0.28 + 0.34 * k;
+  hemi.intensity = (0.28 + 0.34 * k) * ENVK;
   fill.intensity = 0.58 * k + 0.14 * endGlow;
   moon.intensity = lerp(1.38, 0.32, k);
   cardInner.intensity = 52 * endGlow * (1 - k);
   // dim studio environment reflections on acetate and metal when the desk lamp is switched off
-  for (const c of house.children) {
-    if (c.material && c.material.userData?.base?.transparent) c.material.envMapIntensity = 0.32 + 1.58 * k;
-  }
+  acetate.envMapIntensity = 0.32 + 1.58 * k;
   M.rule.envMapIntensity = 0.45 + 0.95 * k;
   M.blade.envMapIntensity = 0.5 + 1.15 * k;
 }
@@ -303,58 +330,90 @@ function useKeys() {
   backShot = makeShot([...BACK, { p: K.hero.p, t: K.hero.t }], { scale: true, turnCost: 1.8 });
 }
 useKeys();
-const camera = new THREE.PerspectiveCamera(K.hero.f, innerWidth / innerHeight, 0.1, 4000);
+const camera = new THREE.PerspectiveCamera(K.hero.f, W / H, 0.1, 4000);
 camera.position.copy(K.hero.p); camera.lookAt(K.hero.t);
 
-// ---------------------------------------------------------------- post
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: phone ? 0 : 4 });
-const composer = new EffectComposer(renderer, rt);
-composer.setPixelRatio(dpr);
-composer.setSize(innerWidth, innerHeight);
-composer.addPass(new RenderPass(scene, camera));
-let gtao = null;
+
+// ---------------------------------------------------------------- post (tablet and desktop)
+// The modules only load where they are used.
+let composer = null, gtao = null, bokeh = null, bloom = null, grade = null;
 const glassy = [house.children[1], ...real.group.children.filter((m) => m.material === R.glass), ...real.leaves.flatMap((l) => l.children.filter((m) => m.material === R.glass)), sky];
-if (!phone && !Q.has('noao')) {
-  gtao = new GTAOPass(scene, camera, innerWidth * dpr, innerHeight * dpr);
-  gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.6, thickness: 1.4, scale: 1.15, samples: 16 });
-  gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
-  gtao.blendIntensity = 0.95;
-  const r0 = gtao.render.bind(gtao);
-  gtao.render = (...a) => { const v = glassy.map((m) => m.visible); glassy.forEach((m) => (m.visible = false)); r0(...a); glassy.forEach((m, i) => (m.visible = v[i])); };
-  composer.addPass(gtao);
+if (!DIRECT) {
+  const A = 'three/addons/postprocessing/';
+  const [{ EffectComposer }, { RenderPass }, { ShaderPass }, { BokehPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all(
+    ['EffectComposer', 'RenderPass', 'ShaderPass', 'BokehPass', 'UnrealBloomPass', 'OutputPass'].map((n) => import(`${A}${n}.js`)));
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+  composer = new EffectComposer(renderer, rt);
+  composer.setPixelRatio(dpr);
+  composer.setSize(W, H);
+  composer.addPass(new RenderPass(scene, camera));
+  if (high && !Q.has('noao')) {
+    const { GTAOPass } = await import(`${A}GTAOPass.js`);
+    gtao = new GTAOPass(scene, camera, W * dpr, H * dpr);
+    gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.6, thickness: 1.4, scale: 1.15, samples: 16 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+    gtao.blendIntensity = 0.95;
+    const r0 = gtao.render.bind(gtao);
+    gtao.render = (...a) => { const v = glassy.map((m) => m.visible); glassy.forEach((m) => (m.visible = false)); r0(...a); glassy.forEach((m, i) => (m.visible = v[i])); };
+    composer.addPass(gtao);
+  }
+  bokeh = new BokehPass(scene, camera, { focus: 140, aperture: 0.0005, maxblur: 0.01 });
+  composer.addPass(bokeh);
+  bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.34, 0.48, 2.15);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  grade = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, res: { value: new THREE.Vector2(W, H) }, seed: { value: 0 }, vig: { value: 0.52 }, grainK: { value: 0.02 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+    fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 res; uniform float seed, vig, grainK; varying vec2 vUv;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      void main(){
+        vec3 c = texture2D(tDiffuse, vUv).rgb;
+        vec2 q = vUv - .5; q.x *= res.x / res.y;
+        c *= mix(1., 1. - smoothstep(.30, 1.10, length(q)), vig);
+        float l = dot(c, vec3(.299, .587, .114));
+        c += vec3(-.003, -.001, .006) * (1. - l);
+        c += (hash(floor(vUv * res) + seed) - .5) * grainK;
+        gl_FragColor = vec4(c, 1.);
+      }`,
+  });
+  composer.addPass(grade);
 }
-const bokeh = new BokehPass(scene, camera, { focus: 140, aperture: 0.0005, maxblur: 0.01 });
-composer.addPass(bokeh);
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.34, 0.48, 2.15);
-composer.addPass(bloom);
-composer.addPass(new OutputPass());
-const grade = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, res: { value: new THREE.Vector2(innerWidth, innerHeight) }, seed: { value: 0 }, vig: { value: 0.52 }, grainK: { value: 0.02 } },
-  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
-  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 res; uniform float seed, vig, grainK; varying vec2 vUv;
-    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-    void main(){
-      vec3 c = texture2D(tDiffuse, vUv).rgb;
-      vec2 q = vUv - .5; q.x *= res.x / res.y;
-      c *= mix(1., 1. - smoothstep(.30, 1.10, length(q)), vig);
-      float l = dot(c, vec3(.299, .587, .114));
-      c += vec3(-.003, -.001, .006) * (1. - l);
-      c += (hash(floor(vUv * res) + seed) - .5) * grainK;
-      gl_FragColor = vec4(c, 1.);
-    }`,
-});
-composer.addPass(grade);
+function render() { if (composer) composer.render(); else renderer.render(scene, camera); }
+// everything that depends on the size of the picture
+function applySize() {
+  renderer.setPixelRatio(dpr); renderer.setSize(W, H, false);
+  if (!composer) return;
+  composer.setPixelRatio(dpr); composer.setSize(W, H);
+  bloom.setSize(W / 2, H / 2);
+  grade.uniforms.res.value.set(W, H);
+  bokeh.uniforms.aspect.value = W / H;
+}
 step(0.82);
+
+// ---------------------------------------------------------------- shadows
+// Two maps, each drawn only when something that casts into it has moved: the lamp's while the hero builds,
+// the sun's when the house first appears and while the door slides. One map per frame, so each sees only its own side.
+let spotDirty = true, sunDirty = true, spotKey = '', sunDoor = -1;
+function shadowPass(realOn) {
+  if (spotDirty) { SHADOW.cardR.value = 0; SHADOW.realR.value = -1; spot.shadow.needsUpdate = true; spotDirty = false; }
+  else if (sunDirty && realOn) { SHADOW.cardR.value = 1e9; SHADOW.realR.value = 1e9; sun.shadow.needsUpdate = true; sunDirty = false; }
+  else return false;
+  renderer.shadowMap.needsUpdate = true;
+  return true;
+}
 
 // compile both worlds now, behind the loader, so the first frames of the turn do not stall
 SWEEP.R.value = 60;
-renderer.compile(scene, camera);
-renderer.shadowMap.needsUpdate = true;
-composer.render();
+try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
+shadowPass(true); render();
+shadowPass(true); render();
 SWEEP.R.value = 0;
+spotDirty = true;
 step(1);
 
 // ---------------------------------------------------------------- the DOM
+// Every write goes through a cache: an element is only touched when its value changes.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const hud = {
@@ -364,27 +423,43 @@ const hud = {
   turnChip: $('.turn-chip'), scanR: $('.turn-chip .scan-r'), turnLine: $('.turn-line'), turnLines: $$('.turn-line .ln > span'),
   rooms: $$('.room'), backLine: $('.back-line'), end: $('.end'), endLines: $$('.end h2 .ln > span'), endRest: $$('.end .rise'),
 };
-const css = (el, o) => { for (const k in o) el.style[k] = o[k]; };
-const show = (el, k, dy = 14) => css(el, { opacity: k, transform: `translate3d(0, ${(1 - k) * dy}px, 0)` });
+const seen = new WeakMap();
+const css = (el, o) => {
+  let c = seen.get(el); if (!c) seen.set(el, (c = {}));
+  for (const k in o) { const v = typeof o[k] === 'number' ? Math.round(o[k] * 1000) / 1000 : o[k]; if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
+};
+const text = (el, s) => { let c = seen.get(el); if (!c) seen.set(el, (c = {})); if (c.text !== s) { c.text = s; el.textContent = s; } };
+const px = (v) => Math.round(v * 10) / 10;
+const show = (el, k, dy = 14) => css(el, { opacity: k, transform: `translate3d(0, ${px((1 - k) * dy)}px, 0)` });
 
 // ---------------------------------------------------------------- the hero builds itself
 // tb: seconds since the scalpel finished its line.
 const LOAD_REC = 2.3; // how long the loader runs in a recording
+const BUILD_END = 5.75; // the last figure stands
 const layerFrom = 13;
-let shadowKey = '';
+let atRest = null;
+function setRest(on) {
+  if (atRest === on) return;
+  atRest = on; pieces.visible = !on; rest.visible = on; spotDirty = true;
+}
 function heroBuild(tb) {
   // the loader: scalpel lifts, the card parts smoothly along its scored line
   const lift = seg(tb, 0, 0.38), open = seg(tb, 0.28, 1.36);
-  L.paint(1, eout(lift), eio4(open));
+  if (open < 1) { L.paint(1, eout(lift), eio4(open)); L.gone = false; } else if (!L.gone) { L.paint(1, 1, 1); L.gone = true; }
   // the lamp clicks on, the filament ramping up
   let k = 0;
   if (tb >= 1.48) k = eout(seg(tb, 1.48, 1.82));
+  if (tb >= BUILD_END) {
+    if (!atRest) { heroBuild(BUILD_END - 1e-4); house.visible = true; heroFig.visible = true; heroFig.scale.set(1, 1, 1); for (const c of house.children) fade(c.material, 1); house.position.set(0, 0, 0); house.rotation.y = 0; setRest(true); }
+    return { k, moving: false, key: 'rest' };
+  }
+  setRest(false);
   // the contour layers drop in, one by one, from the base board up
-  let moving = false;
+  let moving = false, up = 0;
   layers.forEach((l, i) => {
     const t0 = 2.0 + i * 0.13, s = seg(tb, t0, t0 + 0.42), u = seg(tb, t0 + 0.42, t0 + 0.6);
     const y = s < 1 ? layerFrom * (1 - s * s) : layerFrom * 0.02 * Math.sin(Math.PI * u);
-    l.position.y = y; l.visible = tb > t0;
+    l.position.y = y; l.visible = tb > t0; if (l.visible) up++;
     for (const m of l.material) fade(m, sstep(seg(s, 0, 0.4)));
     if (tb > t0 && u < 1) moving = true;
   });
@@ -394,34 +469,36 @@ function heroBuild(tb) {
     house.position.y = 15 * (1 - eout4(s));
     house.rotation.y = 0.045 * (1 - eout(s));
     house.position.x = 0.5 * (1 - eout(s));
-    house.visible = tb > t0;
+    house.visible = tb > t0; if (house.visible) up++;
     for (const c of house.children) fade(c.material, sstep(seg(s, 0, 0.3)));
     if (tb > t0 && s < 1) moving = true;
   }
   // trees and figures stand up
-  trees.forEach((m, i) => { const t0 = 4.45 + i * 0.045, s = seg(tb, t0, t0 + 0.45); m.scale.set(1, Math.max(1e-3, eback(s)), 1); m.visible = s > 0; if (s > 0 && s < 1) moving = true; });
-  figs.forEach((m, i) => { const t0 = 4.9 + i * 0.07, s = seg(tb, t0, t0 + 0.4); m.scale.set(1, Math.max(1e-3, eback(s)), 1); m.visible = s > 0; if (s > 0 && s < 1) moving = true; });
-  return { k, moving, key: layers.map((l) => (l.visible ? l.position.y.toFixed(3) : 'x')).join() + (house.visible ? house.position.y.toFixed(3) : 'x') + trees.map((m) => m.scale.y.toFixed(3)).join() + figs.map((m) => m.scale.y.toFixed(3)).join() };
+  trees.forEach((m, i) => { const t0 = 4.45 + i * 0.045, s = seg(tb, t0, t0 + 0.45); m.scale.set(1, Math.max(1e-3, eback(s)), 1); m.visible = s > 0; if (s > 0) up++; if (s > 0 && s < 1) moving = true; });
+  figs.forEach((m, i) => { const t0 = 4.9 + i * 0.07, s = seg(tb, t0, t0 + 0.4); m.scale.set(1, Math.max(1e-3, eback(s)), 1); m.visible = s > 0; if (s > 0) up++; if (s > 0 && s < 1) moving = true; });
+  return { k, moving, key: moving ? '' : 'up' + up };
 }
 // the headline lands line by line, in masked slides, then the rest of the page chrome
 function heroCopy(tb, out) {
   hud.lines.forEach((el, i) => {
     const s = eout4(seg(tb, 5.1 + i * 0.14, 6.1 + i * 0.14));
-    el.style.transform = `translate3d(0, ${(1 - s) * 125}%, 0)`;
-    el.style.opacity = s > 0.005 ? '1' : '0';
+    css(el, { transform: `translate3d(0, ${px((1 - s) * 125)}%, 0)`, opacity: s > 0.005 ? '1' : '0' });
   });
   const sub = eout(seg(tb, 5.75, 6.6));
-  css(hud.sub, { opacity: sub * (1 - out), transform: `translate3d(0, ${(1 - sub) * 12}px, 0)` });
+  css(hud.sub, { opacity: sub * (1 - out), transform: `translate3d(0, ${px((1 - sub) * 12)}px, 0)` });
   css(hud.top, { opacity: eout(seg(tb, 5.4, 6.3)) });
-  css(hud.hero, { opacity: tb > 5.05 ? 1 - out : 0, transform: `translate3d(0, ${-out * 40}px, 0)` });
+  css(hud.hero, { opacity: tb > 5.05 ? 1 - out : 0, transform: `translate3d(0, ${px(-out * 40)}px, 0)` });
 }
 
 // ---------------------------------------------------------------- the camera, chapter by chapter
-const VH = () => innerHeight / 100;
+const VH = () => H / 100;
 let exact = 0, smooth = 0; // the scroll in vh, and its smoothed copy that drives everything
 const readScroll = () => scrollY / VH();
 const fwd = new THREE.Vector3();
+// The camera breathes slowly while the page waits at either end. After a while without input it comes to rest, and so does the renderer.
+let breath = 1, breathing = false;
 function setFocus(fp, ap, mb) {
+  if (!bokeh) return;
   camera.getWorldDirection(fwd);
   bokeh.uniforms.focus.value = Math.max(1, fp.clone().sub(camera.position).dot(fwd));
   bokeh.uniforms.aperture.value = ap * (phone ? 0.8 : 1);
@@ -441,7 +518,8 @@ function diveCamera(tb, d, t) {
   const p = d > 0 ? pathP.getPoint(u) : K.pre.p.clone().lerp(H.p, pin);
   const tg = d > 0 ? pathT.getPoint(u) : K.pre.t.clone().lerp(H.t, pin);
   // a slow breath while the hero waits
-  const idle = 1 - sstep(seg(d, 0, 0.12));
+  const idle = (1 - sstep(seg(d, 0, 0.12))) * breath;
+  breathing = d < 0.12;
   p.x += Math.sin(t * 0.37) * 0.9 * idle; p.y += Math.sin(t * 0.29 + 1) * 0.5 * idle; p.z += Math.cos(t * 0.31) * 0.9 * idle;
   const fu = sstep(seg(de, 0.1, 0.68));
   place(p, tg.clone().sub(p).normalize(), lerp(d > 0 ? H.f : lerp(K.pre.f, H.f, pin), K.eye.f, fu));
@@ -470,7 +548,8 @@ function walkCamera(w) {
 }
 function backCamera(r, t) {
   const s = backShot.at(lerp(r, sstep(r), 0.5));
-  const idle = sstep(seg(r, 0.96, 1));
+  const idle = sstep(seg(r, 0.96, 1)) * breath;
+  breathing = r > 0.96;
   s.p.x += Math.sin(t * 0.37) * 0.9 * idle; s.p.y += Math.sin(t * 0.29 + 1) * 0.5 * idle; s.p.z += Math.cos(t * 0.31) * 0.9 * idle;
   place(s.p, s.dir, lerp(K.backF, K.hero.f, sstep(seg(r, 0.25, 0.92))));
   const a = sstep(seg(r, 0.78, 1));
@@ -478,21 +557,25 @@ function backCamera(r, t) {
   return { ao: 0.95 * (1 - sstep(seg(r, 0.04, 0.12))) + 0.95 * sstep(seg(r, 0.86, 0.9)), aoR: lerp(0.6, 0.9, sstep(seg(r, 0.8, 1))) };
 }
 // the front's compressed radius from the bulb (see sweep.js): 43 reaches the lens, 47 the figure,
-// 50 to 66 the house in true 1:1 metres, and 66 to 72.8 completes the garden and trees while keeping the dark studio environment
+// 50 to 66 the house in true 1:1 metres, and 66 to 72.8 completes the garden and trees.
 const DOOR_W = [0.07, 0.18], DOOR_R = [0.24, 0.38]; // when the door opens (of the walk) and closes (of the way back)
 const R_MAX = 72.8;
 const turnR = (tau) => pw(tau, [[0, 38], [0.10, 47.5], [0.40, 56.5], [0.68, 66.5], [0.88, 71.2], [1, R_MAX]]);
 const backR = (r) => pw(r, [[0, R_MAX], [0.44, R_MAX], [0.58, 66.5], [0.7, 56.5], [0.78, 45], [0.88, 0]]);
+// Then the front runs on through the room: the walls and the desk go, the land reaches the horizon, the sky stands where the studio was.
+// It opens over the last of the turn and closes again on the terrace, before the way back begins.
+const OPEN_T = [0.84, 1], OPEN_R = [0.27, 0.44], EXT = [30, 5200], STUDIO_GONE = 1200;
 
 // ---------------------------------------------------------------- the frame
 let t0 = performance.now() / 1000, loadDone = REC ? LOAD_REC : -1, lastT = 0;
 function update(t, dt) {
   // live: the loader follows real progress (painted by the inline script) until the line is finished
   if (!REC && loadDone < 0) { if (L.done) loadDone = t; else return false; }
-  if (REC && t < LOAD_REC) { L.paint(eio(clamp(t / LOAD_REC)), 0, 0); }
+  if (REC && t < LOAD_REC) { L.gone = false; L.paint(eio(clamp(t / LOAD_REC)), 0, 0); }
   const tb = t - loadDone;
-  let build = { k: 0, moving: true, key: 'pre' };
-  if (tb < 0) { layers.forEach((l) => (l.visible = false)); house.visible = false; trees.forEach((m) => (m.visible = false)); figs.forEach((m) => (m.visible = false)); }
+  if (tb < 7.6) lastInput = t; // the breath's clock starts when the hero stands
+  let build = { k: 0, moving: false, key: 'pre' };
+  if (tb < 0) { setRest(false); layers.forEach((l) => (l.visible = false)); house.visible = false; trees.forEach((m) => (m.visible = false)); figs.forEach((m) => (m.visible = false)); }
   else build = heroBuild(tb);
   if (tb > 1.25) document.body.classList.remove('locked');
   exact = readScroll();
@@ -501,8 +584,13 @@ function update(t, dt) {
   const y = smooth, T = Math.max(0, tb);
   const d = seg(y, ...CH.dive), tau = seg(y, ...CH.turn), w = seg(y, ...CH.walk), r = seg(y, ...CH.back), e = seg(y, ...CH.end);
 
+  // the breath comes to rest after a while without input (never in a recording)
+  const want = REC || t - lastInput < BREATH_FOR ? 1 : 0;
+  breath = Math.abs(want - breath) < 0.004 ? want : breath + (want - breath) * (1 - Math.exp(-dt / 0.8));
+
   // the camera
   let cam;
+  breathing = false;
   if (y < CH.turn[0]) cam = diveCamera(T, d, t);
   else if (y < CH.walk[0]) cam = turnCamera(tau);
   else if (y < CH.back[0]) cam = walkCamera(w);
@@ -512,17 +600,23 @@ function update(t, dt) {
   // smoothly fade the foreground scale figure as we step into its exact position at the start of the turn
   if (tb > 5.4) fade(heroFig.material, 1 - sstep(seg(tau, 0.01, 0.14)) * (1 - sstep(seg(r, 0.78, 0.88))));
 
-  // the front, and which world is drawn
+  // the fronts, and which world is drawn
   const Rv = y < CH.turn[0] ? 0 : y < CH.walk[0] ? turnR(tau) : y < CH.back[0] ? R_MAX : backR(r);
-  SWEEP.R.value = Rv;
+  const open = y < CH.turn[0] ? 0 : y < CH.walk[0] ? sstep(seg(tau, ...OPEN_T)) : y < CH.back[0] ? 1 : 1 - sstep(seg(r, ...OPEN_R));
+  const ext = open <= 0 ? 0 : EXT[0] * Math.pow(EXT[1] / EXT[0], open);
+  SWEEP.R.value = Math.max(Rv, ext);
+  SWEEP.S.value = ext;
   SWEEP.glow.value = sstep(seg(Rv, 36, 41)) * (1 - 0.85 * sstep(seg(Rv, 70.5, 72.75)));
-  for (const m of realMeshes) m.visible = Rv > 32;
-  const cardOn = Rv < R_MAX - 0.3;
-  for (const m of cardMeshes) m.visible = buildSet.has(m) ? m.visible && cardOn : cardOn; // the build decides first, the front second
+  SWEEP.glowS.value = sstep(seg(open, 0, 0.06)) * (1 - sstep(seg(open, 0.82, 1)));
+  const realOn = Rv > 32;
+  realRoot.visible = realOn;
+  cardRoot.visible = Rv < R_MAX - 0.3;       // the build decides piece by piece, the front decides for the whole model
+  desk.group.visible = ext < STUDIO_GONE;    // the room, until the front has passed its last corner
+  sky.visible = open > 0;
   // cross-fade the lamp's light into a low white sun as the sweep passes over the camera and the house
   const dayK = sstep(seg(Rv, 42, 66));
   sun.intensity = lerp(2.85, 4.15, dayK);
-  hemiDay.intensity = lerp(0.25, 0.40, dayK);
+  hemiDay.intensity = lerp(0.25, 0.40, dayK) * ENVK;
   renderer.toneMappingExposure = lerp(1.02, 1.06, dayK);
   // the two leaves part as we come up onto the terrace, and close behind us on the way out
   const door = DOOR.slide * sstep(seg(w, DOOR_W[0], DOOR_W[1])) * (y < CH.back[0] ? 1 : 1 - sstep(seg(r, DOOR_R[0], DOOR_R[1])));
@@ -535,35 +629,40 @@ function update(t, dt) {
   setLamp(k, endGlow);
 
   // shadows redraw when something that casts one has moved (a jump in time included)
-  const key = build.key + '|' + Rv.toFixed(2) + '|' + door.toFixed(3);
-  if (build.moving || key !== shadowKey) { renderer.shadowMap.needsUpdate = true; shadowKey = key; }
+  if (build.moving || build.key !== spotKey) { spotDirty = true; spotKey = build.key; }
+  if (door !== sunDoor) { sunDirty = true; sunDoor = door; }
+  shadowPass(realOn);
+  if (spotDirty || (sunDirty && realOn)) wake(2); // the other map follows on the next frame
 
   heroCopy(T, sstep(seg(d, 0, 0.07)));
   copy(T, y, d, tau, w, r, e);
-  grade.uniforms.seed.value = (t * 60) % 97;
+  if (grade) grade.uniforms.seed.value = (t * 60) % 97;
   return true;
 }
 
 function copy(tb, y, d, tau, w, r, e) {
   // the dive: lens height, the drifting sentence, eye height
   const h = camera.position.y - GARDEN;
-  const altOn = sstep(seg(d, 0.03, 0.12)) * (1 - sstep(seg(tau, 0.04, 0.14))) + sstep(seg(r, 0.5, 0.58)) * (1 - sstep(seg(r, 0.9, 0.98)));
-  css(hud.alt, { opacity: y > CH.walk[0] && y < CH.back[0] ? 0 : altOn });
-  hud.altCm.textContent = h.toFixed(1) + ' cm';
-  hud.altM.textContent = h.toFixed(1) + ' m';
-  hud.altMark.style.transform = `translate3d(0, ${(1 - clamp(h / 60)) * 100}%, 0)`;
+  const altOn = y > CH.walk[0] && y < CH.back[0] ? 0 : sstep(seg(d, 0.03, 0.12)) * (1 - sstep(seg(tau, 0.04, 0.14))) + sstep(seg(r, 0.5, 0.58)) * (1 - sstep(seg(r, 0.9, 0.98)));
+  css(hud.alt, { opacity: altOn });
+  if (altOn > 0) {
+    text(hud.altCm, h.toFixed(1) + ' cm');
+    text(hud.altM, h.toFixed(1) + ' m');
+    css(hud.altMark, { transform: `translate3d(0, ${px((1 - clamp(h / 60)) * 100)}%, 0)` });
+  }
   const dr = seg(d, 0.16, 0.62);
   const dop = sstep(seg(dr, 0, 0.18)) * (1 - sstep(seg(dr, 0.78, 1)));
   const driftX = phone ? lerp(3, -3, dr) : lerp(10, -10, dr);
-  css(hud.drift, { opacity: dop, transform: `translate3d(${driftX}vw, 0, 0)` });
+  css(hud.drift, { opacity: dop, transform: `translate3d(${px(driftX)}vw, 0, 0)` });
   show(hud.chip, sstep(seg(d, 0.92, 0.98)) * (1 - sstep(seg(tau, 0, 0.03))), 10);
   // the turn
-  if (hud.scanR) hud.scanR.textContent = `SCAN R ${SWEEP.R.value.toFixed(1)}M`;
-  show(hud.turnChip, sstep(seg(tau, 0.03, 0.10)) * (1 - sstep(seg(tau, 0.9, 1))), 10);
+  const chipOn = sstep(seg(tau, 0.03, 0.10)) * (1 - sstep(seg(tau, 0.9, 1)));
+  if (hud.scanR && chipOn > 0) text(hud.scanR, `SCAN R ${Math.min(SWEEP.R.value, R_MAX).toFixed(1)}M`);
+  show(hud.turnChip, chipOn, 10);
   const tl = sstep(seg(tau, 0.34, 0.48)) * (1 - sstep(seg(tau, 0.84, 0.95)));
-  hud.turnLines.forEach((el, i) => { const s = eout4(seg(tau, 0.32 + i * 0.03, 0.46 + i * 0.03)); el.style.transform = `translate3d(0, ${(1 - s) * 112}%, 0)`; });
+  hud.turnLines.forEach((el, i) => { const s = eout4(seg(tau, 0.32 + i * 0.03, 0.46 + i * 0.03)); css(el, { transform: `translate3d(0, ${px((1 - s) * 112)}%, 0)` }); });
   css(hud.turnLine, { opacity: tl });
-  hud.scrim.style.opacity = Math.max(dop, tl * 0.8);
+  css(hud.scrim, { opacity: Math.max(dop, tl * 0.8) });
   // the rooms
   show(hud.rooms[0], sstep(seg(w, 0.32, 0.39)) * (1 - sstep(seg(w, 0.56, 0.62))));
   show(hud.rooms[1], sstep(seg(w, 0.76, 0.82)) * (1 - sstep(seg(w, 0.93, 0.98))));
@@ -571,30 +670,48 @@ function copy(tb, y, d, tau, w, r, e) {
   show(hud.backLine, sstep(seg(r, 0.6, 0.68)) * (1 - sstep(seg(r, 0.84, 0.9))), 18);
   // the end: the lamp goes off, and the studio says what it does
   const en = sstep(seg(e, 0.4, 0.62));
-  hud.end.style.opacity = en > 0 ? 1 : 0;
-  hud.end.classList.toggle('live', en > 0.5);
-  hud.endLines.forEach((el, i) => { const s = eout4(seg(e, 0.42 + i * 0.05, 0.66 + i * 0.05)); el.style.transform = `translate3d(0, ${(1 - s) * 112}%, 0)`; });
+  css(hud.end, { opacity: en > 0 ? 1 : 0 });
+  if (hud.end.live !== en > 0.5) { hud.end.live = en > 0.5; hud.end.classList.toggle('live', en > 0.5); }
+  hud.endLines.forEach((el, i) => { const s = eout4(seg(e, 0.42 + i * 0.05, 0.66 + i * 0.05)); css(el, { transform: `translate3d(0, ${px((1 - s) * 112)}%, 0)` }); });
   hud.endRest.forEach((el, i) => show(el, eout(seg(e, 0.58 + i * 0.05, 0.8 + i * 0.05)), 16));
   // the hint
   const hint = eout(seg(tb, 6.6, 7.4));
-  hud.hintText.textContent = d > 0.9 ? 'Zum Hineingehen scrollen' : 'Scrollen zum Verkleinern';
+  text(hud.hintText, d > 0.9 ? 'Zum Hineingehen scrollen' : 'Scrollen zum Verkleinern');
   css(hud.hint, { opacity: hint * (d < 0.06 ? 1 - d / 0.06 : d > 0.9 && tau <= 0 ? sstep(seg(d, 0.93, 1)) : 0) });
 }
-function render() { composer.render(); }
 
-addEventListener('resize', () => {
-  const was = phone; phone = innerWidth < 760 || innerWidth / innerHeight < 0.8;
+// ---------------------------------------------------------------- when a frame is due
+// A frame is drawn while the loader or the hero runs, while the scroll (or its smoothed copy) moves, while the camera breathes,
+// and for a few frames after anything else asks for one. Otherwise the page costs nothing.
+const BREATH_FOR = 14; // seconds of breathing after the last input
+let wakeFrames = 6, lastInput = performance.now() / 1000 - t0;
+function wake(n = 2) { wakeFrames = Math.max(wakeFrames, n); }
+const poke = () => { lastInput = performance.now() / 1000 - t0; };
+for (const ev of ['scroll', 'wheel', 'touchstart', 'touchmove', 'pointermove', 'pointerdown', 'keydown']) addEventListener(ev, poke, { passive: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(4); });
+function frameDue(t) {
+  if (wakeFrames > 0 || loadDone < 0 || t - loadDone < 7.6) return true;
+  if (Math.abs(readScroll() - smooth) > 1e-3) return true;
+  if (breathing && (t - lastInput < BREATH_FOR || breath > 0)) return true;
+  return false;
+}
+
+function resize() {
+  W = canvas.clientWidth || innerWidth; H = canvas.clientHeight || innerHeight;
+  const was = phone; phone = W < 760 || W / H < 0.8;
   if (was !== phone) useKeys();
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight);
-  bloom.setSize(innerWidth / 2, innerHeight / 2);
-  grade.uniforms.res.value.set(innerWidth, innerHeight);
-  bokeh.uniforms.aspect.value = innerWidth / innerHeight;
-});
+  camera.aspect = W / H; camera.updateProjectionMatrix();
+  if (gov) { gov.refit(); gov.hold(1200); } else applySize();
+  wake(4);
+}
+const gov = REC ? null : governor({ apply: (v) => { dpr = v; applySize(); wake(3); } });
+if (!gov) applySize();
+onStableResize(resize);
 
 const raf = () => new Promise((r) => requestAnimationFrame(r));
+const shown = (m) => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
 window.__rig = {
-  ready: true, camera, scene, phone: () => phone, CH, shots: () => ({ walk: walkShot, back: backShot }), real, stage, land, rtrees,
+  ready: true, camera, scene, renderer, tier, phone: () => phone, dpr: () => dpr, CH, shots: () => ({ walk: walkShot, back: backShot }), real, stage, land, rtrees,
   // the recorder's frame: t in seconds since start, y in vh of scroll
   async frame(t, y, o = {}) {
     if (y != null) window.scrollTo(0, y * VH());
@@ -602,6 +719,7 @@ window.__rig = {
     if (t < lastT || o.snap) smooth = readScroll();
     lastT = t;
     update(t, dt); render();
+    if (spotDirty || (sunDirty && realRoot.visible)) { update(t, 0); render(); } // the second shadow map, if both were due
     await raf(); await raf();
     return { t, y: +smooth.toFixed(1), R: +SWEEP.R.value.toFixed(1), fov: +camera.fov.toFixed(2), cam: camera.position.toArray().map((v) => +v.toFixed(2)) };
   },
@@ -629,7 +747,7 @@ window.__rig = {
       const e = camera.position, side = SWEEP.R.value > 45 ? 'real' : 'card';
       let best = 9, where = null;
       for (const m of side === 'real' ? realMeshes : [...cardMeshes, ...studioMeshes]) {
-        if (!m.visible || (m === heroFig && m.material.opacity < 0.05)) continue;
+        if (!shown(m) || (m === heroFig && m.material.opacity < 0.05)) continue;
         let T = cache.get(m);
         if (!T || moving.has(m)) { T = pack(m); cache.set(m, T); }
         for (let i = 0; i < T.length; i += 13) {
@@ -651,16 +769,17 @@ window.__rig = {
 };
 
 if (!REC) {
-  let last = performance.now() / 1000, slow = 0;
-  const loop = () => {
-    const now = performance.now() / 1000, dt = Math.min(1 / 30, now - last); last = now;
-    if (!document.hidden && innerWidth > 0 && innerHeight > 0) {
-      if (update(now - t0, dt)) render();
-      // quality governor: a lower render size if frames run long for two seconds
-      slow = dt > 0.03 ? slow + dt : Math.max(0, slow - dt * 0.5);
-      if (slow > 2 && dpr > 1) { dpr = Math.max(1, dpr - 0.25); renderer.setPixelRatio(dpr); composer.setPixelRatio(dpr); composer.setSize(innerWidth, innerHeight); slow = 0; }
-    }
+  let last = performance.now() / 1000;
+  const loop = (ms) => {
     requestAnimationFrame(loop);
+    const now = ms / 1000, dt = Math.min(1 / 30, Math.max(0, now - last)); last = now;
+    const t = now - t0;
+    const due = !document.hidden && W > 0 && H > 0 && frameDue(t);
+    if (t - loadDone < 6.5 || loadDone < 0) gov.hold(600); // the loader and the hero's build are no measure of the device
+    gov.frame(ms, due);
+    if (!due) return;
+    if (wakeFrames > 0) wakeFrames--;
+    if (update(t, dt)) render();
   };
   requestAnimationFrame(loop);
 }

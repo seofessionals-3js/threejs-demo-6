@@ -9,15 +9,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/page.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" crossorigin>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
 } }
 </script>
 </head>
 <body class="locked">
 <canvas id="gl" aria-hidden="true"></canvas>
+<div class="vig" aria-hidden="true"></div>
 
 <div class="hud" aria-hidden="true">
   <div id="cad-hud"><div class="ch-c tl"></div><div class="ch-c tr"></div><div class="ch-c bl"></div><div class="ch-c br"></div></div>

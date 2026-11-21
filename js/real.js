@@ -3,10 +3,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { houseParts, makeRnd, G, L1, STEPS } from './house.js';
-import { canvasTex, grain, blotches, worldUV, shiftZ, treeSpots, cardHouse, contourLayers, modelTrees, modelFigures, buildLamp, LAMP, sheetTexture, MAT_TOP, DESK_TOP, FALL, STEP, BENCH, SLOPE_X } from './desk.js';
+import { canvasTex, grain, blotches, worldUV, shiftZ, treeSpots, cardHouse, contourLayers, modelTrees, modelFigures, buildLamp, LAMP, sheetMaterial, mergeStatic, lean, QL, MAT_TOP, DESK_TOP, FALL, STEP, BENCH, SLOPE_X } from './desk.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const rnd = makeRnd(71);
+const rnd = makeRnd(71);    // geometry: the same on every device
+const trnd = makeRnd(4211); // textures
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -44,15 +45,17 @@ export function landAt(x, z) {
   return h;
 }
 
-function axis(c0, c1, step, far0, far1, nFar) { // dense samples near, growing spacing to the far edges
+function axis(c0, c1, step, far0, far1, rate) { // dense samples near, growing spacing to the far edges
   const xs = [];
   for (let x = c0; x <= c1 + 1e-6; x += step) xs.push(+x.toFixed(3));
-  const grow = (from, to) => { const out = []; let x = from, d = step; while ((to > from && x < to) || (to < from && x > to)) { d *= Math.pow(Math.abs(to - from) / step, 1 / nFar) > 1 ? 1.16 : 1; x += Math.sign(to - from) * d; out.push(x); } return out; };
+  const grow = (from, to) => { const out = []; let x = from, d = step; while ((to > from && x < to) || (to < from && x > to)) { d *= rate; x += Math.sign(to - from) * d; out.push(x); } return out; };
   return [...grow(c0, far0).reverse(), ...xs, ...grow(c1, far1)];
 }
 
-export function terrain(R, phone) {
-  const xs = axis(-40, 72, phone ? 0.8 : 0.5, -700, 1100, 40), zs = axis(-40, 40, phone ? 0.8 : 0.5, -900, 900, 40);
+// q: 0 phone, 1 tablet, 2 desktop
+export function terrain(R, q = 2) {
+  const step = [0.8, 0.65, 0.5][q], rate = [1.14, 1.11, 1.08][q];
+  const xs = axis(-10, 44, step, -700, 1100, rate), zs = axis(-16, 16, step, -900, 900, rate);
   for (const v of [5.1, 16.9, 21.75, 32.25]) { xs.push(v - 0.04, v + 0.04); }
   for (const v of [-6.9, 2.9]) { zs.push(v - 0.04, v + 0.04); }
   xs.sort((a, b) => a - b); zs.sort((a, b) => a - b);
@@ -72,7 +75,7 @@ export function terrain(R, phone) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, R.land); m.receiveShadow = true; m.castShadow = true;
+  const m = new THREE.Mesh(g, R.land); m.receiveShadow = true; m.castShadow = false; // the slope faces the sun: nothing on it shades itself
   return m;
 }
 
@@ -86,33 +89,33 @@ function makeTextures() {
     blotches(g, s, 95, 'rgba(52,52,54,0.042)', 24, 120);
     const boards = 16, bh = s / boards;
     for (let b = 0; b < boards; b++) {
-      const y0 = b * bh, tone = (rnd() - 0.5) * 10;
+      const y0 = b * bh, tone = (trnd() - 0.5) * 10;
       g.fillStyle = tone > 0 ? `rgba(252,252,254,${tone * 0.004})` : `rgba(41,41,43,${-tone * 0.004})`;
       g.fillRect(0, y0, s, bh);
       // subtle horizontal wood-grain transfer from formwork boards
       for (let k = 0; k < 14; k++) {
-        const y = y0 + rnd() * bh;
-        g.fillStyle = rnd() < 0.5 ? 'rgba(59,59,61,0.045)' : 'rgba(244,244,246,0.035)';
-        g.fillRect(0, y, s, 1 + rnd() * 1.5);
+        const y = y0 + trnd() * bh;
+        g.fillStyle = trnd() < 0.5 ? 'rgba(59,59,61,0.045)' : 'rgba(244,244,246,0.035)';
+        g.fillRect(0, y, s, 1 + trnd() * 1.5);
       }
       // formwork board seam fin and shadow
       g.fillStyle = 'rgba(34,34,36,0.18)'; g.fillRect(0, y0, s, 1.5);
       g.fillStyle = 'rgba(252,252,254,0.09)'; g.fillRect(0, y0 + 1.5, s, 1.2);
     }
     for (let i = 0; i < 18; i++) {
-      const y = Math.floor(rnd() * boards) * bh;
-      g.fillStyle = 'rgba(36,36,38,0.12)'; g.fillRect(rnd() * s, y, 1.5, bh);
+      const y = Math.floor(trnd() * boards) * bh;
+      g.fillStyle = 'rgba(36,36,38,0.12)'; g.fillRect(trnd() * s, y, 1.5, bh);
     }
     // architectural formwork tie holes in regular grid rows
     for (const ry of [0.18, 0.5, 0.82]) for (const rx of [0.16, 0.5, 0.84]) {
-      const x = rx * s + (rnd() - 0.5) * 6, y = ry * s + (rnd() - 0.5) * 6;
+      const x = rx * s + (trnd() - 0.5) * 6, y = ry * s + (trnd() - 0.5) * 6;
       g.fillStyle = 'rgba(48,48,50,0.42)'; g.beginPath(); g.arc(x, y, 5.2, 0, 7); g.fill();
       g.strokeStyle = 'rgba(240,240,242,0.22)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y + 0.6, 5.8, 0, 7); g.stroke();
       g.fillStyle = 'rgba(25,25,27,0.55)'; g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill();
     }
     for (let i = 0; i < 65; i++) {
       g.fillStyle = 'rgba(63,63,65,0.28)';
-      g.beginPath(); g.arc(rnd() * s, rnd() * s, 0.8 + rnd() * 1.6, 0, 7); g.fill();
+      g.beginPath(); g.arc(trnd() * s, trnd() * s, 0.8 + trnd() * 1.6, 0, 7); g.fill();
     }
     grain(g, s, s, 14);
   }, { tile: 2.4 });
@@ -121,19 +124,19 @@ function makeTextures() {
   T.oak = canvasTex(1024, 1024, (g, s) => {
     const rows = 14, h = s / rows;
     for (let r = 0; r < rows; r++) {
-      let x = -rnd() * s * 0.4;
+      let x = -trnd() * s * 0.4;
       while (x < s) {
-        const L = s * (0.42 + rnd() * 0.55), v = rnd();
+        const L = s * (0.42 + trnd() * 0.55), v = trnd();
         g.fillStyle = `hsl(240,3%,${15 + v * 6}%)`;
         g.fillRect(x, r * h, L, h);
         for (let k = 0; k < 18; k++) {
-          const gy = r * h + rnd() * h;
-          g.fillStyle = `rgba(59,59,61,${0.035 + rnd() * 0.065})`;
-          g.fillRect(x, gy, L, 0.8 + rnd() * 1.4);
+          const gy = r * h + trnd() * h;
+          g.fillStyle = `rgba(59,59,61,${0.035 + trnd() * 0.065})`;
+          g.fillRect(x, gy, L, 0.8 + trnd() * 1.4);
         }
         for (let k = 0; k < 6; k++) {
-          g.fillStyle = `rgba(224,224,226,${0.04 + rnd() * 0.05})`;
-          g.fillRect(x + rnd() * L * 0.5, r * h + rnd() * h, L * 0.4, 1);
+          g.fillStyle = `rgba(224,224,226,${0.04 + trnd() * 0.05})`;
+          g.fillRect(x + trnd() * L * 0.5, r * h + trnd() * h, L * 0.4, 1);
         }
         g.fillStyle = 'rgba(31,31,33,0.28)'; g.fillRect(x, r * h, 1.5, h);
         x += L;
@@ -151,9 +154,9 @@ function makeTextures() {
       const y0 = (b * h) / 4, bh = h / 4, v = (b % 2) * 0.04;
       g.fillStyle = `rgba(44,44,48,${0.25 + v})`; g.fillRect(0, y0, w, bh);
       for (let i = 0; i < 48; i++) {
-        const y = y0 + rnd() * bh;
-        g.fillStyle = rnd() < 0.65 ? `rgba(57,57,59,${0.03 + rnd() * 0.055})` : `rgba(219,219,221,${0.03 + rnd() * 0.04})`;
-        g.fillRect(0, y, w, 0.8 + rnd() * 1.8);
+        const y = y0 + trnd() * bh;
+        g.fillStyle = trnd() < 0.65 ? `rgba(57,57,59,${0.03 + trnd() * 0.055})` : `rgba(219,219,221,${0.03 + trnd() * 0.04})`;
+        g.fillRect(0, y, w, 0.8 + trnd() * 1.8);
       }
       g.fillStyle = 'rgba(40,40,42,0.12)'; g.fillRect(0, y0, w, 1);
     }
@@ -167,10 +170,10 @@ function makeTextures() {
     blotches(g, s, 90, 'rgba(62,62,64,0.15)', 22, 100);
     blotches(g, s, 60, 'rgba(116,116,118,0.10)', 16, 70);
     for (let i = 0; i < 28000; i++) {
-      const r = rnd();
+      const r = trnd();
       g.fillStyle = r < 0.45 ? 'rgba(51,51,53,0.24)' : r < 0.82 ? 'rgba(178,178,180,0.19)' : 'rgba(117,117,119,0.22)';
-      const x = rnd() * s, y = rnd() * s;
-      g.fillRect(x, y, 1 + (r > 0.85 ? 0.6 : 0), 2.2 + rnd() * 3.2);
+      const x = trnd() * s, y = trnd() * s;
+      g.fillRect(x, y, 1 + (r > 0.85 ? 0.6 : 0), 2.2 + trnd() * 3.2);
     }
     grain(g, s, s, 10);
   }, { tile: 6.5 });
@@ -184,13 +187,13 @@ function makeTextures() {
       const cols = 3, cw = s / cols;
       for (let c = -1; c <= cols; c++) {
         const x0 = c * cw + (shift % cw), y0 = r * rh;
-        const dv = (rnd() - 0.5) * 0.07;
+        const dv = (trnd() - 0.5) * 0.07;
         g.fillStyle = dv > 0 ? `rgba(250,250,252,${dv})` : `rgba(100,100,102,${-dv})`;
         g.fillRect(x0, y0, cw, rh);
         // subtle travertine sedimentary veins
         for (let v = 0; v < 8; v++) {
-          g.fillStyle = rnd() < 0.5 ? 'rgba(117,117,119,0.045)' : 'rgba(248,248,250,0.05)';
-          g.fillRect(x0 + rnd() * cw * 0.3, y0 + rnd() * rh, cw * (0.4 + rnd() * 0.5), 1.2 + rnd() * 2);
+          g.fillStyle = trnd() < 0.5 ? 'rgba(117,117,119,0.045)' : 'rgba(248,248,250,0.05)';
+          g.fillRect(x0 + trnd() * cw * 0.3, y0 + trnd() * rh, cw * (0.4 + trnd() * 0.5), 1.2 + trnd() * 2);
         }
         g.fillStyle = 'rgba(69,69,71,0.34)'; g.fillRect(x0, y0, 1.6, rh);
         g.fillStyle = 'rgba(252,252,254,0.18)'; g.fillRect(x0 + 1.6, y0, 1.0, rh);
@@ -208,9 +211,9 @@ function makeTextures() {
     blotches(g, s, 50, 'rgba(127,127,129,0.12)', 14, 60);
     blotches(g, s, 50, 'rgba(29,29,31,0.16)', 12, 55);
     for (let i = 0; i < 220; i++) {
-      const x = rnd() * s, y = rnd() * s, h = 25 + rnd() * 90;
-      g.fillStyle = rnd() < 0.55 ? 'rgba(25,25,27,0.28)' : 'rgba(139,139,141,0.16)';
-      g.fillRect(x, y, 1.5 + rnd() * 2, h);
+      const x = trnd() * s, y = trnd() * s, h = 25 + trnd() * 90;
+      g.fillStyle = trnd() < 0.55 ? 'rgba(25,25,27,0.28)' : 'rgba(139,139,141,0.16)';
+      g.fillRect(x, y, 1.5 + trnd() * 2, h);
     }
     grain(g, s, s, 14);
   }, { tile: 0.8 });
@@ -297,7 +300,7 @@ function patchFoliage(mat, sssTint = [0.12, 0.12, 0.13]) {
 
 export function realMaterials(env) {
   const T = makeTextures();
-  const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.88, metalness: 0, envMap: env, envMapIntensity: 0.45 }, o));
+  const std = (o) => new THREE.MeshStandardMaterial(lean(Object.assign({ roughness: 0.88, metalness: 0, envMap: env, envMapIntensity: 0.45 }, o)));
   const R = {
     T,
     conc: std({ map: T.conc, bumpMap: T.conc, bumpScale: 0.011, roughness: 0.84 }),
@@ -394,8 +397,9 @@ export function realHouse(R) {
     group.add(m);
   }
   const leaves = [-1, 1].map((id) => {
-    const leaf = new THREE.Group();
-    for (const [key, b] of leafBoxes[id]) { const m = new THREE.Mesh(boxGeo(b), R[key]); m.castShadow = key !== 'glass'; m.receiveShadow = true; if (key === 'glass') m.renderOrder = 2; leaf.add(m); }
+    const leaf = new THREE.Group(), byKey = new Map();
+    for (const [key, b] of leafBoxes[id]) { if (!byKey.has(key)) byKey.set(key, []); byKey.get(key).push(boxGeo(b)); }
+    for (const [key, list] of byKey) { const m = new THREE.Mesh(mergeGeometries(list), R[key]); m.castShadow = key !== 'glass'; m.receiveShadow = true; if (key === 'glass') m.renderOrder = 2; leaf.add(m); }
     group.add(leaf);
     return leaf;
   });
@@ -403,6 +407,7 @@ export function realHouse(R) {
 }
 
 // ---------------------------------------------------------------- staging: the rooms dressed, in black, white and one red
+const REACH = 8.5; // how far a lamp in the house is worth computing: beyond it a pixel skips the light altogether
 export function staging(R, Mcard) {
   const g = new THREE.Group();
   const lights = []; // [x, y, z, intensity, distance]: the lamps that are on, for the page to light
@@ -442,7 +447,7 @@ export function staging(R, Mcard) {
     lathe([[0, 0], [pot * 0.82, 0], [pot, pot * 1.5], [pot * 0.92, pot * 1.55], [0, pot * 1.4]], 32, potMat, x, y, z);
     put(gnarledBranch(V(0, pot * 1.2, 0), V(0.05, h * 0.55, -0.04), V(-0.04, h, 0.04), pot * 0.18, pot * 0.09, 7, 8), R.bark, x, y, z);
     put(gnarledBranch(V(0.01, h * 0.62, -0.01), V(0.14, h * 0.8, 0.06), V(0.22, h * 0.98, 0.1), pot * 0.09, pot * 0.045, 5, 6), R.bark, x, y, z);
-    put(canopy(crown, 0.055, 0.095), mat, x, y + h + 0.12, z, { cast: true });
+    put(canopy(crown, 0.055, 0.095, Math.round(x * 10 + z * 3)), mat, x, y + h + 0.12, z, { cast: true });
   };
 
   // 1. The terrace: two loungers in the sun, a side table between them
@@ -468,7 +473,7 @@ export function staging(R, Mcard) {
   put(new THREE.CylinderGeometry(0.014, 0.014, 1.52, 10), R.chrome, 14.82, 0.76, 2.4);
   put(new THREE.CylinderGeometry(0.16, 0.26, 0.32, 28, 1, true), R.shade, 14.82, 1.55, 2.4, { cast: false });
   put(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 24), R.steel, 14.82, 0.01, 2.4);
-  lights.push([14.82, 1.45, 2.3, 4.0, 0]);
+  lights.push([14.82, 1.45, 2.3, 4.0, REACH]);
   // cushions on the sofa, a red throw over its arm
   rbox(0.62, 0.5, 0.18, 0.35, R.linen, 13.5, 0.78, -1.6, 0, -0.25);
   rbox(0.58, 0.48, 0.18, 0.35, R.redC, 14.15, 0.77, -1.58, 0.12, -0.28);
@@ -545,7 +550,7 @@ export function staging(R, Mcard) {
     put(new THREE.CylinderGeometry(0.03, 0.04, 0.05, 12), R.chrome, cx, 1.95, -4.5, { cast: false });
     put(new THREE.SphereGeometry(0.13, 22, 14), R.shade, cx, 1.81, -4.5, { cast: false });
   }
-  lights.push([14.15, 1.62, -4.5, 3.0, 0]);
+  lights.push([14.15, 1.62, -4.5, 3.0, REACH]);
   lathe([[0, 0], [0.14, 0.005], [0.22, 0.05], [0.2, 0.06], [0, 0.02]], 28, R.stone, 13.9, 0.77, -4.52);
   lathe([[0, 0], [0.05, 0], [0.075, 0.12], [0.04, 0.24], [0, 0.24]], 22, R.charcoal, 14.5, 0.77, -4.42);
   box(12.65, 0.75, -6.7, 14.15, 2.69, -6.66, R.charcoal);
@@ -568,7 +573,7 @@ export function staging(R, Mcard) {
     put(new THREE.CylinderGeometry(0.004, 0.004, 0.8, 6), R.steel, cx, 2.4, -4.42, { cast: false });
     put(new THREE.CylinderGeometry(0.11, 0.16, 0.2, 24, 1, true), R.shade, cx, 1.92, -4.42, { cast: false });
   }
-  lights.push([9.0, 1.7, -4.42, 3.2, 0]);
+  lights.push([9.0, 1.7, -4.42, 3.2, REACH]);
   box(7.8, 0.94, -4.75, 8.15, 1.02, -4.4, R.book2);
   lathe([[0, 0], [0.12, 0], [0.16, 0.05], [0, 0.04]], 24, R.ceramic, 9.9, 0.94, -4.3);
   lathe([[0, 0], [0.06, 0], [0.085, 0.1], [0.06, 0.22], [0.03, 0.26], [0, 0.26]], 22, R.charcoal, 6.6, 0.94, -6.36);
@@ -584,7 +589,7 @@ export function staging(R, Mcard) {
   // 5. The study (+3.10): pinboard, reading corner, and on the desk the model again
   box(12.7, 3.95, -6.7, 16.25, 4.9, -6.67, R.board);
   [['section', false], ['plan', true], ['elev', false], ['upper', false]].forEach(([kind, trace], i) => {
-    const m = new THREE.MeshStandardMaterial({ map: sheetTexture(kind, trace), roughness: 0.92, envMap: R.board.envMap, envMapIntensity: 0.35 });
+    const m = sheetMaterial(kind, trace, 'house');
     const w = 0.84 + (i % 2) * 0.12; const sh = new THREE.PlaneGeometry(w, w / 1.414); sh.rotateZ((rnd() - 0.5) * 0.04);
     put(sh, m, 13.2 + i * 0.86, 4.42 + (i % 2) * 0.05, -6.662, { cast: false });
     for (const dx of [-w * 0.42, w * 0.42]) put(new THREE.SphereGeometry(0.012, 8, 6), R.red, 13.2 + i * 0.86 + dx, 4.42 + (i % 2) * 0.05 + w / 2.828 - 0.03, -6.658, { cast: false });
@@ -614,7 +619,7 @@ export function staging(R, Mcard) {
   rbox(0.48, 0.38, 0.15, 0.35, R.redC, 15.95, L1 + 0.62, -6.14, 0, 0.2);
   put(new THREE.CylinderGeometry(0.012, 0.012, 1.45, 8), R.chrome, 16.5, L1 + 0.72, -5.3);
   put(new THREE.CylinderGeometry(0.13, 0.2, 0.26, 24, 1, true), R.shade, 16.5, L1 + 1.5, -5.3, { cast: false });
-  lights.push([16.4, L1 + 1.42, -5.35, 2.0, 0]);
+  lights.push([16.4, L1 + 1.42, -5.35, 2.0, REACH]);
   // the desk: a rug, the chair pushed aside so the view to the model is open
   box(12.6, L1, -6.05, 16.0, L1 + 0.01, -3.55, R.rug, { cast: false });
   addChair(13.62, L1, -4.2, -0.42, R.leather);
@@ -641,16 +646,16 @@ export function staging(R, Mcard) {
   miniScale.position.set(-0.44, 0.006, 0.2); miniScale.rotation.y = 0.24;
   desk.add(miniScale);
 
-  const tiny = new THREE.Group();
+  const tiny = new THREE.Group(), TD = QL.low ? 0.34 : 0.5; // a model 54 cm wide: a third of the outline points is plenty
   tiny.add(cardHouse(Mcard));
   for (const l of contourLayers(Mcard)) tiny.add(l);
-  for (const tr of modelTrees(Mcard)) tiny.add(tr);
-  for (const fg of modelFigures(Mcard)) tiny.add(fg);
+  for (const tr of modelTrees(Mcard, TD)) tiny.add(tr);
+  for (const fg of modelFigures(Mcard, 0.5)) tiny.add(fg);
   tiny.scale.setScalar(0.01);
   tiny.position.set(-0.13, 0.003 - MAT_TOP * 0.01, 0.03);
   desk.add(tiny);
 
-  const lamp = buildLamp(Mcard, LAMP).group;
+  const lamp = buildLamp(Mcard, LAMP, 0.5).group;
   const lampRot = Math.PI + 0.5, lampAt = V(-0.34, 0, -0.3); // where its base stands, and how it is turned to reach over the model
   lamp.scale.setScalar(0.01);
   lamp.rotation.y = lampRot;
@@ -659,9 +664,12 @@ export function staging(R, Mcard) {
   desk.add(lamp);
   desk.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   desk.updateMatrixWorld(true);
+  const lampHeadW = lamp.localToWorld(LAMP.head.clone().addScaledVector(LAMP.aimAt.clone().sub(LAMP.head).normalize(), 17));
   // its light sits a hand's breadth below the shade: inside it, the white lining would burn out
-  const head = lamp.localToWorld(LAMP.head.clone().addScaledVector(LAMP.aimAt.clone().sub(LAMP.head).normalize(), 17));
+  const head = lampHeadW;
   lights.push([head.x, head.y, head.z, 0.8, 2.5]);
+  mergeStatic(desk);
+  for (const c of [...desk.children]) if (!c.isMesh) desk.remove(c);
 
   // everything but the desk is static: one mesh per material
   const byMat = new Map();
@@ -726,9 +734,13 @@ function gnarledBranch(p0, p1, p2, r0, r1, segs = 7, radSegs = 7) {
 }
 
 // Botanical foliage canopy with smooth leaf-cluster geometry, outward-blended crown normals, and vertex-color crown AO
-export function canopy(clusters, s0, s1, r = rnd) {
-  const list = [];
-  const baseSprig = new THREE.SphereGeometry(1, 6, 4).toNonIndexed();
+// The sprig is the unit of cost: 36 triangles on a desktop, 20 on a tablet, 8 on a phone (a few less of them, each a little larger).
+// The crown's normals point outwards as a whole, so it shades as one cloud at every level.
+const SPRIG = [[4, 2, 0.8, 1.15], [5, 3, 0.9, 1.06], [6, 4, 1, 1]];
+export function canopy(clusters, s0, s1, seed = 1) {
+  const list = [], r = makeRnd(9000 + seed * 131);
+  const [sw, sh, nK, sK] = SPRIG[QL.lod ?? 2];
+  const baseSprig = new THREE.SphereGeometry(1, sw, sh).toNonIndexed();
   const bPos = baseSprig.attributes.position, bNorm = baseSprig.attributes.normal;
   // sculpt base sprig into a ruffled 3-lobed botanical leaf cluster
   for (let i = 0; i < bPos.count; i++) {
@@ -741,7 +753,7 @@ export function canopy(clusters, s0, s1, r = rnd) {
   const nVerts = bPos.count;
 
   for (const [cx, cy, cz, rx, ry, rz, n] of clusters) {
-    const count = Math.max(18, Math.round(n * 0.62));
+    const count = Math.max(14, Math.round(n * 0.62 * nK));
     for (let i = 0; i < count; i++) {
       let x, y, z;
       do { x = r() * 2 - 1; y = r() * 2 - 1; z = r() * 2 - 1; } while (x * x + y * y + z * z > 1);
@@ -750,7 +762,7 @@ export function canopy(clusters, s0, s1, r = rnd) {
       const shell = lerp(0.52 + 0.48 * Math.cbrt(r()), 0.82 + 0.18 * r(), 0.55) / d;
       const lx = x * shell * rx, ly = y * shell * ry, lz = z * shell * rz;
       const px = cx + lx, py = cy + ly, pz = cz + lz;
-      const sc = (s0 + r() * (s1 - s0)) * 1.18;
+      const sc = (s0 + r() * (s1 - s0)) * 1.18 * sK;
 
       const g = baseSprig.clone();
       g.scale(sc * (0.9 + 0.25 * r()), sc * (0.85 + 0.25 * r()), sc * (0.9 + 0.25 * r()));
@@ -787,7 +799,7 @@ export function canopy(clusters, s0, s1, r = rnd) {
   return mergeGeometries(list);
 }
 
-function treeParts(kind, x, y, z, k, out) {
+function treeParts(kind, x, y, z, k, out, seed = 1) {
   const T = (geo, key) => { geo.translate(x, y, z); out[key].push(geo); };
   if (kind === 'poplar') {
     // a poplar: a tall, narrow flame built from tiered upward plumes
@@ -798,7 +810,7 @@ function treeParts(kind, x, y, z, k, out) {
       [0, 6.9, 0, 0.34, 1.05, 0.34, Math.round(80 * k)],
       [0, 7.8, 0, 0.16, 0.6, 0.16, Math.round(40 * k)],
     ];
-    const c = canopy(tiers, 0.11 / Math.sqrt(k), 0.19 / Math.sqrt(k));
+    const c = canopy(tiers, 0.11 / Math.sqrt(k), 0.19 / Math.sqrt(k), seed);
     T(c, 'leafDark');
     T(gnarledBranch(V(0, -0.1, 0), V(0.03, 1.3, -0.02), V(0, 3.0, 0), 0.15, 0.07, 6, 7), 'bark');
     return;
@@ -835,12 +847,12 @@ function treeParts(kind, x, y, z, k, out) {
         [0.55, 4.25, 0.28, 1.18, 0.95, 1.12, 210],
         [0.08, 3.65, -0.48, 1.22, 1.05, 1.15, 180],
       ];
-  const c = canopy(cl.map((q) => [...q.slice(0, 6), Math.round(q[6] * k)]), (olive ? 0.1 : 0.12) / Math.sqrt(k), (olive ? 0.17 : 0.21) / Math.sqrt(k));
+  const c = canopy(cl.map((q) => [...q.slice(0, 6), Math.round(q[6] * k)]), (olive ? 0.1 : 0.12) / Math.sqrt(k), (olive ? 0.17 : 0.21) / Math.sqrt(k), seed);
   T(c, olive ? 'maple' : 'leaf');
 }
 
 // grass tufts on the garden slope and round the trees
-function buildMeadowTufts(out) {
+function buildMeadowTufts(outAt) {
   const bladeBase = new THREE.PlaneGeometry(0.055, 0.38, 1, 3).toNonIndexed();
   const bp = bladeBase.attributes.position;
   for (let i = 0; i < bp.count; i++) {
@@ -888,61 +900,81 @@ function buildMeadowTufts(out) {
         gn.setXYZ(v, 0, 0.92, 0.38);
       }
       g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-      out[useDark ? 'leafDark' : 'leaf'].push(g);
+      outAt(tx, tz)[useDark ? 'leafDark' : 'leaf'].push(g);
     }
   }
 }
 
-export function realTrees(R, phone) {
-  const out = { leafDark: [], leaf: [], maple: [], bark: [] };
+// The trees are cut into five groups by where they stand, so the ones behind the camera are not drawn at all:
+// from the living room only the garden to the south and east is in the picture, not the poplars behind the house.
+const chunkOf = (x, z) => (x > 20 ? (z < 0 ? 'en' : 'es') : x < 0 ? (z < -10 ? 'n' : 'w') : z > 3 ? 's' : 'n');
+export function realTrees(R) {
+  const chunks = {};
+  const outAt = (x, z) => (chunks[chunkOf(x, z)] ||= { leafDark: [], leaf: [], maple: [], bark: [] });
   // the twins of the card trees, where they stood on the model
-  for (const [kind, x, z] of treeSpots()) treeParts(kind, x, landAt(x, z), z, 1, out);
+  treeSpots().forEach(([kind, x, z], i) => treeParts(kind, x, landAt(x, z), z, 1, outAt(x, z), i + 1));
   // grass tufts on the slope
-  buildMeadowTufts(out);
+  buildMeadowTufts(outAt);
   // more poplars behind the house, beyond the edge of the model (still inside the scan)
   const far = [];
   for (let i = 0; i < 9; i++) far.push(['poplar', -30 - (i % 3) * 3.2, -38 + i * 4.6 + (rnd() - 0.5)]);
   for (let i = 0; i < 7; i++) far.push(['poplar', -12 + i * 3.6, -25 - (rnd() * 1.5)]);
-  for (const [kind, x, z] of far) treeParts(kind, x, landAt(x, z), z, 0.38, out);
+  far.forEach(([kind, x, z], i) => treeParts(kind, x, landAt(x, z), z, 0.38, outAt(x, z), 40 + i));
   const g = new THREE.Group();
-  for (const key in out) { const m = new THREE.Mesh(mergeGeometries(out[key]), R[key]); m.castShadow = true; m.receiveShadow = true; g.add(m); }
+  for (const c in chunks) for (const key in chunks[c]) {
+    if (!chunks[c][key].length) continue;
+    const m = new THREE.Mesh(mergeGeometries(chunks[c][key]), R[key]); m.castShadow = true; m.receiveShadow = true; m.name = 'trees-' + c + '-' + key; g.add(m);
+  }
   return g;
 }
 
-// ---------------------------------------------------------------- the sky: only ever seen in reflections, a grey studio sweep with one bright side
+// ---------------------------------------------------------------- the sky
+// Seen from the garden and from inside the house once the front has taken the studio away, and in every reflection.
+// Colours are linear and go through the renderer's tone mapping like everything else.
+export const SKY = {
+  sunDir: { value: SUN_DIR },
+  zen: { value: new THREE.Color(0.36, 0.42, 0.52) },   // overhead
+  hor: { value: new THREE.Color(0.98, 0.96, 0.93) },   // the haze at the horizon
+  sun: { value: new THREE.Color(1.35, 1.22, 1.05) },   // the horizon under the sun, and its glow
+  low: { value: new THREE.Color(0.62, 0.62, 0.62) },   // below the horizon, where the land would be
+};
 const SKY_GLSL = `
-  uniform vec3 sunDir;
+  uniform vec3 sunDir, zen, hor, sun, low;
   vec3 skyColor(vec3 d) {
     float h = d.y;
     float sd = max(dot(d, sunDir), 0.), toward = pow(max(dot(normalize(d.xz + 1e-4), normalize(sunDir.xz)), 0.), 2.);
-    vec3 zen = vec3(0.15, 0.155, 0.17), hor = mix(vec3(0.56, 0.57, 0.60), vec3(1.05, 1.02, 0.98), toward), low = vec3(0.28, 0.28, 0.29);
-    vec3 col = mix(hor, zen, pow(clamp(h, 0., 1.), 0.52));
-    col = mix(col, low, smoothstep(0.02, -0.10, h));
-    col += vec3(1.2, 1.15, 1.1) * pow(sd, 8.) * 0.16 + vec3(1.8, 1.7, 1.6) * pow(sd, 160.) * 0.35;
-    col += vec3(22., 21., 20.) * smoothstep(0.99955, 0.9998, sd);
+    vec3 col = mix(mix(hor, sun, toward * 0.6), zen, pow(clamp(h, 0., 1.), 0.46));
+    col = mix(col, low, smoothstep(0.0, -0.10, h));
+    col += sun * (pow(sd, 7.) * 0.22 + pow(sd, 120.) * 0.7);
+    col += sun * 18. * smoothstep(0.99955, 0.9998, sd);
     return col;
   }`;
-export function skyDome(sweep) {
+export function skyDome() {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { sunDir: { value: SUN_DIR }, uSweepC: sweep.C, uSweepR: sweep.R },
-    vertexShader: 'varying vec3 vDir; varying vec3 vW; void main(){ vDir = normalize(position); vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-    fragmentShader: `varying vec3 vDir; varying vec3 vW; uniform vec3 uSweepC; uniform float uSweepR; ${SKY_GLSL}
-      void main(){ gl_FragColor = vec4(skyColor(normalize(vDir)), 1.); }`,
+    uniforms: SKY,
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+    fragmentShader: `varying vec3 vDir; ${SKY_GLSL}
+      void main(){ gl_FragColor = vec4(skyColor(normalize(vDir)), 1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
     side: THREE.BackSide, depthWrite: false, fog: false,
   });
-  const m = new THREE.Mesh(new THREE.SphereGeometry(3000, 48, 24), mat);
-  m.frustumCulled = false; m.renderOrder = -10;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(3000, 24, 12), mat);
+  m.frustumCulled = false; m.renderOrder = 1; // after everything solid, so it only fills what is left open
   return m;
 }
 export function skyEnv(renderer) {
   const s = new THREE.Scene();
-  s.add(new THREE.Mesh(new THREE.SphereGeometry(50, 48, 24), new THREE.ShaderMaterial({
-    uniforms: { sunDir: { value: SUN_DIR } }, side: THREE.BackSide,
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.ShaderMaterial({
+    uniforms: SKY, side: THREE.BackSide,
     vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
     fragmentShader: `varying vec3 vDir; ${SKY_GLSL} void main(){ vec3 c = skyColor(normalize(vDir)); gl_FragColor = vec4(min(c, vec3(4.5)), 1.); }`,
   })));
   // the ground half of the environment, for the reflections in the glass
-  const gnd = new THREE.Mesh(new THREE.CircleGeometry(49, 32), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.27, 0.27, 0.28) }));
+  const gnd = new THREE.Mesh(new THREE.CircleGeometry(49, 32), new THREE.MeshBasicMaterial({ color: SKY.low.value.clone().multiplyScalar(0.45) }));
   gnd.rotation.x = -Math.PI / 2; gnd.position.y = -5; s.add(gnd);
-  return new THREE.PMREMGenerator(renderer).fromScene(s, 0.025).texture;
+  const gen = new THREE.PMREMGenerator(renderer), tex = gen.fromScene(s, 0.025).texture;
+  gen.dispose();
+  return tex;
 }
