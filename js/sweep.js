@@ -1,8 +1,7 @@
-// The turn: one scene holds both worlds, the card model in the studio and the house in daylight, built from the same parts.
-// A front expands from the lamp's bulb. Card draws only outside it, the real house only inside it,
+// The turn: one scene holds both, the card model and the built house, made from the same parts.
+// A front expands from the lamp's bulb. The card house draws only outside it, the built house only inside it,
 // and a line of lamp light runs where the front crosses a surface. So the change travels through the world, not across the screen.
-// Once the garden is complete the front runs on through the studio itself (its walls, the desk, the lamp),
-// and the evening sky stands where the room was. On the way out the room closes again the same way.
+// The studio, the desk and the model's land stay as they are: the house turns real where it stands. On the way out the card returns the same way.
 //
 // Each side also keeps its own light: the card is lit by the lamp, the window and a dim fill, the house by the sun,
 // the daylight sky and the lamps inside. Three.js lights are global, so every lit material scales each light's
@@ -27,6 +26,7 @@ const CARD_LIGHT = { dirK: { value: [0, 1, 1] }, hemiK: { value: [1, 0] }, spotK
 const SIDE = {
   card: CARD_LIGHT,
   studio: CARD_LIGHT,
+  site: CARD_LIGHT,
   real: { dirK: { value: [1, 0, 0] }, hemiK: { value: [0, 1] }, spotK: { value: 0 }, pointK: { value: 1 } },
 };
 
@@ -68,7 +68,7 @@ float sweepSeam = uSweepGlowS * uSeamK * ( exp( -pow( dSeam / seamW, 2.0 ) ) + 0
 ` : `
 ${MAP_D}
 float sweepD = min( compSweepD, uSweepClamp );
-${side === 'card' ? 'if ( sweepD < uSweepR ) discard;' : 'if ( sweepD > uSweepR ) discard;'}
+${side === 'card' ? 'if ( sweepD < uSweepR ) discard;' : side === 'real' ? 'if ( sweepD > uSweepR ) discard;' : '// the site stays: the front only draws its line across it'}
 float dSeam = abs( sweepD - uSweepR );
 float coreLine = exp( -pow( dSeam / uSweepW, 2.0 ) );
 float echoLine = 0.36 * exp( -pow( ( dSeam - uSweepW * 2.6 ) / ( uSweepW * 0.75 ), 2.0 ) );
@@ -81,7 +81,8 @@ float cadGrid = max( cY * 0.62, max( cX, cZ ) * 0.42 ) * gridEnv;
 float sweepSeam = uSweepGlow * uSeamK * ( coreLine * 1.15 + echoLine + softBand + cadGrid ) * smoothstep( 98.0, 72.0, compSweepD );
 `);
 
-// make a material belong to one side of the front ('card', 'real' or 'studio'). clamp: distances beyond it count as it
+// make a material belong to one side of the front ('card', 'real', 'studio', or 'site': the model's land and trees,
+// which stay as they are while the line of the front runs over them). clamp: distances beyond it count as it
 export function sweepMaterial(mat, side, { clamp = 1e6, seam = 1.0 } = {}) {
   if (mat.userData.sweep) return mat;
   mat.userData.sweep = side;
@@ -125,8 +126,8 @@ function depthMaterial(side) {
   m.customProgramCacheKey = () => 'sweep-depth-' + side;
   return m;
 }
-export const DEPTH = { card: depthMaterial('card'), studio: depthMaterial('card'), real: depthMaterial('real') };
-DEPTH.studio = DEPTH.card;
+export const DEPTH = { card: depthMaterial('card'), real: depthMaterial('real') };
+DEPTH.studio = DEPTH.site = DEPTH.card;
 
 // put every mesh under root on one side: its materials and its shadow
 export function sweepSide(root, side, opts) {

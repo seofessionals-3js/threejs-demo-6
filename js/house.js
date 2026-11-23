@@ -51,7 +51,7 @@ export function houseParts(rnd = makeRnd(11)) {
   // footing, ground slab, and the terrace the frame stands on (it runs on past the east wall to the garden steps)
   box(5, -0.8, -7, 17, G, 3, 'conc', 'struct', 1);
   box(5, G, -7, 17, 0, 3, { all: 'conc', top: 'floorD' }, 'struct', 3);
-  box(17, G, -7, 21.2, 0, 5.6, { all: 'conc', top: 'pave' }, 'struct', 3);
+  box(17, G, -7, 21.2, 0, 5.6, { all: 'conc', top: 'deck' }, 'struct', 3);
   for (let k = 0; k < STEPS.n; k++) {
     const top = G - STEPS.rise * k + 0.03, x0 = k === 0 ? 21.2 : STEPS.x0 + k * STEPS.run;
     box(x0, top - 0.45, STEPS.z0, STEPS.x0 + (k + 1) * STEPS.run + 0.02, top, STEPS.z1, 'pave', 'struct', 3);
@@ -62,7 +62,7 @@ export function houseParts(rnd = makeRnd(11)) {
   box(5.3, 2.8, -2.2, 12.6, L1, 1.7, SU, 'struct', 5);
   box(10.5, 2.8, 1.7, 12.6, L1, 2.7, SU, 'struct', 5);
   box(5.3, 2.8, 1.7, 5.7, L1, 2.7, SU, 'struct', 5);
-  box(16.7, 2.8, -6.7, 18.4, L1, -2.2, { all: 'plaster', top: 'pave', bot: 'plaster' }, 'struct', 5); // the balcony of the study
+  box(16.7, 2.8, -6.7, 18.4, L1, -2.2, { all: 'plaster', top: 'deck', bot: 'plaster' }, 'struct', 5); // the balcony of the study
   // the roof, with a rooflight over the void, and its parapet
   const RF = { all: 'plaster', top: 'gravel', bot: 'plaster' };
   const RL = [13.4, 15.9, -1.3, 1.8];
@@ -77,10 +77,10 @@ export function houseParts(rnd = makeRnd(11)) {
   box(RL[0], 6.36, RL[2], RL[1], 6.39, RL[3], 'glass', 'glass', 7);
 
   // north wall: the entrance from the forecourt, two windows upstairs
-  wall('x', 5, 5.3, -7, 3, 0, TOP, [[-1.6, -0.5, 0, 2.3], [-5.6, -3.4, 4.0, 5.3], [0.4, 1.6, 4.0, 5.3]], 'plaster', 4);
+  wall('x', 5, 5.3, -7, 3, 0, TOP, [[-1.6, -0.5, 0, 2.3], [-5.6, -3.4, 4.0, 5.3], [0.4, 1.6, 4.0, 5.3]], { all: 'plaster', nx: 'clad' }, 4);
   // the two side walls run out past the glass and make the frame
-  wall('z', -7, -6.7, 5.3, 18.4, 0, TOP, [[6.6, 10.6, 1.05, 2.0], [6.8, 9.6, 4.0, 5.3]], 'plaster', 4);
-  wall('z', 2.7, 3, 5.3, 18.4, 0, TOP, [[14.9, 16.1, 0.45, 5.45], [6.3, 9.9, 4.0, 5.3]], 'plaster', 4);
+  wall('z', -7, -6.7, 5.3, 18.4, 0, TOP, [[6.6, 10.6, 1.05, 2.0], [6.8, 9.6, 4.0, 5.3]], { all: 'plaster', nz: 'clad' }, 4);
+  wall('z', 2.7, 3, 5.3, 18.4, 0, TOP, [[14.9, 16.1, 0.45, 5.45], [6.3, 9.9, 4.0, 5.3]], { all: 'plaster', pz: 'clad' }, 4);
   // upstairs, the wall between the rooms and the gallery
   wall('x', 11.6, 11.75, -6.7, 2.7, L1, TOP, [], 'plaster', 4);
 
@@ -157,6 +157,36 @@ export function houseParts(rnd = makeRnd(11)) {
   }
   // paving: the forecourt on the north side
   box(-3.5, G, -3.6, 5.0, G + 0.03, 1.4, 'pave', 'land', 8);
+
+  // the skin: what makes the built house more than its model. None of it is cut in card.
+  const S = (x0, y0, z0, x1, y1, z1, m) => box(x0, y0, z0, x1, y1, z1, m, 'skin', 8);
+  // the frame is white outside and lined with cedar inside: both cheeks and the soffit in front of the glass, and under the balcony
+  S(16.93, 0, -6.7, 18.38, TOP, -6.672, 'clad'); S(16.93, 0, 2.672, 18.38, TOP, 2.7, 'clad');
+  S(16.93, TOP - 0.03, -6.672, 18.38, TOP, 2.672, 'soffit');
+  S(16.93, 2.772, -6.672, 18.38, 2.8, -2.2, 'soffit');
+  // downlights let into both soffits
+  for (const z of [-5.95, -4.45, -2.95, -1.3, 0.25, 1.8]) S(17.6, TOP - 0.036, z - 0.06, 17.72, TOP - 0.03, z + 0.06, 'glow');
+  for (const z of [-5.95, -4.45, -2.95]) S(17.6, 2.766, z - 0.06, 17.72, 2.772, z + 0.06, 'glow');
+  // a line of light under every other tread of the garden steps
+  for (let k = 0; k < STEPS.n; k += 2) {
+    const top = G - STEPS.rise * k + 0.03, xf = STEPS.x0 + (k + 1) * STEPS.run + 0.02;
+    S(xf, top - 0.075, STEPS.z0 + 0.08, xf + 0.012, top - 0.045, STEPS.z1 - 0.08, 'glow');
+  }
+  // sliding shutters of cedar slats on the balcony: one stands in front of the last bay of the study
+  for (const [z0, z1] of [[-6.66, -5.22]]) {
+    S(18.3, L1 + 0.02, z0, 18.34, L1 + 0.07, z1, 'steel'); S(18.3, TOP - 0.1, z0, 18.34, TOP - 0.05, z1, 'steel');
+    for (let z = z0 + 0.03; z < z1 - 0.03; z += 0.085) S(18.292, L1 + 0.07, z, 18.348, TOP - 0.1, z + 0.045, 'clad');
+  }
+  S(18.28, TOP - 0.05, -6.67, 18.36, TOP - 0.03, -2.2, 'steel'); // their track
+  // zinc on the parapets, a flue, and the roof at work: sixteen panels
+  S(4.97, 6.5, -7.03, 18.43, 6.525, -6.77, 'steel'); S(4.97, 6.5, 2.77, 18.43, 6.525, 3.03, 'steel');
+  S(4.97, 6.5, -6.77, 5.23, 6.525, 2.77, 'steel'); S(18.17, 6.5, -6.77, 18.43, 6.525, 2.77, 'steel');
+  S(6.1, 6.2, 1.55, 6.45, 7.35, 1.9, 'steel'); S(6.05, 7.35, 1.5, 6.5, 7.4, 1.95, 'steel');
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const x = 6.0 + i * 1.72, z = -6.1 + j * 1.08;
+    S(x, 6.26, z, x + 1.66, 6.3, z + 1.02, { all: 'steel', top: 'pv' });
+    S(x + 0.2, 6.2, z + 0.45, x + 0.26, 6.26, z + 0.57, 'steel'); S(x + 1.4, 6.2, z + 0.45, x + 1.46, 6.26, z + 0.57, 'steel');
+  }
   return P;
 }
 

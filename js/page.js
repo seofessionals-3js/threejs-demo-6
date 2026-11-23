@@ -1,5 +1,5 @@
 // Desk at Night, the whole page: the loader, the hero building itself on the desk, the dive to eye height,
-// the turn (the card becomes the house, the lamp becomes the sun), the walk in through the big door and up to the study, and back to the desk.
+// the turn (the card becomes the built house, where it stands in the studio), the walk in through the big door and up to the study, and back to the desk.
 // Everything on screen is a function of two numbers: t (seconds since the page started) and the scroll.
 // Live, t is the clock. With ?rec the recorder sets both, one frame at a time (window.__rig.frame).
 //
@@ -78,22 +78,19 @@ const pieces = new THREE.Group();
 pieces.add(...layers, ...trees, ...figs.slice(0, -1));
 const rest = D.mergeStatic(pieces, { copy: true });
 rest.visible = false;
+const cardHouse = new THREE.Group(); // the card house alone: the front takes it away, the land it stands on stays
+cardHouse.add(house);
 const cardRoot = new THREE.Group();
-cardRoot.add(house, pieces, rest, heroFig);
+cardRoot.add(cardHouse, pieces, rest, heroFig);
 scene.add(desk.group, cardRoot);
 step(0.52);
 
-// the daylight world
-const skyEnv = RW.skyEnv(renderer);
-const R = RW.realMaterials(skyEnv);
-for (const k in Mtiny) { if (Mtiny[k].envMap) Mtiny[k].envMap = skyEnv; }
+// the house itself, built and furnished. It stands where the card model stood: on the model's land, in the studio, under the lamp
+const R = RW.realMaterials(env);
 const real = RW.realHouse(R);
-const land = RW.terrain(R, LOD);
-const rtrees = RW.realTrees(R);
 const stage = RW.staging(R, Mtiny);
-const sky = RW.skyDome();
 const realRoot = new THREE.Group();
-realRoot.add(real.group, land, rtrees, stage, sky);
+realRoot.add(real.group, stage);
 scene.add(realRoot);
 step(0.68);
 
@@ -112,10 +109,11 @@ function fade(mat, k) {
   mat.opacity = b.opacity * k; mat.depthWrite = !b.transparent && k > 0.5;
 }
 
-// three sides of the fronts (see sweep.js): the card model, the house, and the studio round them both
+// the sides of the front (see sweep.js): the card house goes, the built house comes, and the model's land, its trees
+// and the studio round them stay as they are
 const studioMeshes = sweepSide(desk.group, 'studio', { seam: 0.7 });
-const cardMeshes = sweepSide(cardRoot, 'card');
-const realMeshes = [real.group, land, rtrees, stage].flatMap((o) => sweepSide(o, 'real'));
+const cardMeshes = [...sweepSide(cardHouse, 'card'), ...sweepSide(heroFig, 'card'), ...sweepSide(pieces, 'site'), ...sweepSide(rest, 'site')];
+const realMeshes = [real.group, stage].flatMap((o) => sweepSide(o, 'real'));
 for (const o of [...cardMeshes, ...studioMeshes]) for (const m of [].concat(o.material)) m.fog = false;
 scene.fog = new THREE.FogExp2(new THREE.Color(0.92, 0.74, 0.48), 0.0005);
 
@@ -337,7 +335,7 @@ camera.position.copy(K.hero.p); camera.lookAt(K.hero.t);
 // ---------------------------------------------------------------- post (tablet and desktop)
 // The modules only load where they are used.
 let composer = null, gtao = null, bokeh = null, bloom = null, grade = null;
-const glassy = [house.children[1], ...real.group.children.filter((m) => m.material === R.glass), ...real.leaves.flatMap((l) => l.children.filter((m) => m.material === R.glass)), sky];
+const glassy = [house.children[1], ...real.group.children.filter((m) => m.material === R.glass), ...real.leaves.flatMap((l) => l.children.filter((m) => m.material === R.glass))];
 if (!DIRECT) {
   const A = 'three/addons/postprocessing/';
   const [{ EffectComposer }, { RenderPass }, { ShaderPass }, { BokehPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all(
@@ -562,9 +560,7 @@ const DOOR_W = [0.07, 0.18], DOOR_R = [0.24, 0.38]; // when the door opens (of t
 const R_MAX = 72.8;
 const turnR = (tau) => pw(tau, [[0, 38], [0.10, 47.5], [0.40, 56.5], [0.68, 66.5], [0.88, 71.2], [1, R_MAX]]);
 const backR = (r) => pw(r, [[0, R_MAX], [0.44, R_MAX], [0.58, 66.5], [0.7, 56.5], [0.78, 45], [0.88, 0]]);
-// Then the front runs on through the room: the walls and the desk go, the land reaches the horizon, the sky stands where the studio was.
-// It opens over the last of the turn and closes again on the terrace, before the way back begins.
-const OPEN_T = [0.84, 1], OPEN_R = [0.27, 0.44], EXT = [30, 5200], STUDIO_GONE = 1200;
+// The front stops at the edge of the model: the studio, the desk and the lamp stay where they are, and so does the model's land.
 
 // ---------------------------------------------------------------- the frame
 let t0 = performance.now() / 1000, loadDone = REC ? LOAD_REC : -1, lastT = 0;
@@ -602,17 +598,11 @@ function update(t, dt) {
 
   // the fronts, and which world is drawn
   const Rv = y < CH.turn[0] ? 0 : y < CH.walk[0] ? turnR(tau) : y < CH.back[0] ? R_MAX : backR(r);
-  const open = y < CH.turn[0] ? 0 : y < CH.walk[0] ? sstep(seg(tau, ...OPEN_T)) : y < CH.back[0] ? 1 : 1 - sstep(seg(r, ...OPEN_R));
-  const ext = open <= 0 ? 0 : EXT[0] * Math.pow(EXT[1] / EXT[0], open);
-  SWEEP.R.value = Math.max(Rv, ext);
-  SWEEP.S.value = ext;
-  SWEEP.glow.value = sstep(seg(Rv, 36, 41)) * (1 - 0.85 * sstep(seg(Rv, 70.5, 72.75)));
-  SWEEP.glowS.value = sstep(seg(open, 0, 0.06)) * (1 - sstep(seg(open, 0.82, 1)));
+  SWEEP.R.value = Rv;
+  SWEEP.glow.value = sstep(seg(Rv, 36, 41)) * (1 - sstep(seg(Rv, 70.5, 72.75)));
   const realOn = Rv > 32;
   realRoot.visible = realOn;
-  cardRoot.visible = Rv < R_MAX - 0.3;       // the build decides piece by piece, the front decides for the whole model
-  desk.group.visible = ext < STUDIO_GONE;    // the room, until the front has passed its last corner
-  sky.visible = open > 0;
+  cardHouse.visible = Rv < R_MAX - 0.3;      // the build decides piece by piece, the front decides for the whole card house
   // cross-fade the lamp's light into a low white sun as the sweep passes over the camera and the house
   const dayK = sstep(seg(Rv, 42, 66));
   sun.intensity = lerp(2.85, 4.15, dayK);
@@ -711,7 +701,7 @@ onStableResize(resize);
 const raf = () => new Promise((r) => requestAnimationFrame(r));
 const shown = (m) => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
 window.__rig = {
-  ready: true, camera, scene, renderer, tier, phone: () => phone, dpr: () => dpr, CH, shots: () => ({ walk: walkShot, back: backShot }), real, stage, land, rtrees,
+  ready: true, camera, scene, renderer, tier, phone: () => phone, dpr: () => dpr, CH, shots: () => ({ walk: walkShot, back: backShot }), real, stage,
   // the recorder's frame: t in seconds since start, y in vh of scroll
   async frame(t, y, o = {}) {
     if (y != null) window.scrollTo(0, y * VH());

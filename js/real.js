@@ -1,5 +1,5 @@
-// The house itself, in daylight: the same list of parts as the card model, in white render, black oak, glass and linen,
-// on land graded from the same contour lines, under the sun that was the desk lamp. Black, white, and one red.
+// The house itself, built: the same list of parts as the card model, in white render, cedar, bronze steel, glass and linen.
+// It stands where the card model stood, on the model's land, in the studio. A white frame lined with cedar, lit from inside.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { houseParts, makeRnd, G, L1, STEPS } from './house.js';
@@ -12,72 +12,8 @@ const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-// the sun sits where the lamp's light came from, lowered to a late afternoon
+// the house's key light comes from the side of the desk lamp, lowered so it reaches under the roof and deep into the rooms
 export const SUN_DIR = V(0.9456, 0.1305, 0.2981).normalize(); // 7.5 degrees up: low enough to show under the roof, from the study, through the big glass
-
-// ---------------------------------------------------------------- land
-// The contour layers are the land cut into 0.8 m steps. Undo the steps: the same lines, read as a slope,
-// with a subtle memory of the 0.8 m contour benches near the house so card and land rhyme during the turn.
-function noise2(x, z) { // value noise, smooth, deterministic
-  const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
-  const h = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
-  const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
-  return (h(xi, zi) * (1 - u) + h(xi + 1, zi) * u) * (1 - v) + (h(xi, zi + 1) * (1 - u) + h(xi + 1, zi + 1) * u) * v;
-}
-const fbm = (x, z) => { let s = 0, a = 0.5, f = 1; for (let i = 0; i < 5; i++) { s += a * noise2(x * f, z * f); f *= 2.03; a *= 0.5; } return s; };
-
-export function landAt(x, z) {
-  const u = x - shiftZ(z);
-  let h = G - clamp((u - (SLOPE_X - BENCH / 2)) / (FALL / STEP * BENCH)) * FALL;   // the garden slope the layers were cut from
-  if (u > 38) h -= (u - 38) * 0.1 / (1 + (u - 38) / 40);                          // the lawn eases away past the edge of the board
-  if (u < -14) h += Math.pow((-14 - u) / 44, 1.5) * 7;                            // the land behind keeps rising
-  h += sstep(260, 720, u) * 70 * (0.6 + 0.8 * fbm(z * 0.004 + 3, u * 0.002));    // hills far off
-  const r = Math.hypot(x - 12, z + 2);
-  h += sstep(62, 170, r) * (fbm(x * 0.012, z * 0.012) - 0.45) * 14;               // the far land rolls
-  // made ground: the terrace, the garden steps and the forecourt lie true
-  const pad = (x0, x1, z0, z1, e) => sstep(x0 - e, x0, x) * (1 - sstep(x1, x1 + e, x)) * sstep(z0 - e, z0, z) * (1 - sstep(z1, z1 + e, z));
-  const made = Math.max(pad(4.4, 21.4, -7.6, 5.8, 0.6), pad(21.2, STEPS.x0 + STEPS.n * STEPS.run + 0.4, STEPS.z0 - 0.3, STEPS.z1 + 0.3, 0.4), pad(-3.7, 5, -3.8, 1.6, 0.5));
-  h += (fbm(x * 0.35, z * 0.35) - 0.5) * 0.12 * sstep(6, 14, r) * (1 - made);     // a little unevenness
-  // a memory of the 0.4 m benches on the slope, so card and land rhyme during the turn
-  const bench = Math.round((h - G) / STEP) * STEP + G;
-  h = lerp(h, bench, 0.14 * sstep(14, 22, r) * (1 - sstep(32, 48, r)) * (1 - made));
-  if (x > 5.1 && x < 16.9 && z > -6.9 && z < 2.9) h = Math.min(h, -0.55);         // dug out under the house
-  return h;
-}
-
-function axis(c0, c1, step, far0, far1, rate) { // dense samples near, growing spacing to the far edges
-  const xs = [];
-  for (let x = c0; x <= c1 + 1e-6; x += step) xs.push(+x.toFixed(3));
-  const grow = (from, to) => { const out = []; let x = from, d = step; while ((to > from && x < to) || (to < from && x > to)) { d *= rate; x += Math.sign(to - from) * d; out.push(x); } return out; };
-  return [...grow(c0, far0).reverse(), ...xs, ...grow(c1, far1)];
-}
-
-// q: 0 phone, 1 tablet, 2 desktop
-export function terrain(R, q = 2) {
-  const step = [0.8, 0.65, 0.5][q], rate = [1.14, 1.11, 1.08][q];
-  const xs = axis(-10, 44, step, -700, 1100, rate), zs = axis(-16, 16, step, -900, 900, rate);
-  for (const v of [5.1, 16.9, 21.75, 32.25]) { xs.push(v - 0.04, v + 0.04); }
-  for (const v of [-6.9, 2.9]) { zs.push(v - 0.04, v + 0.04); }
-  xs.sort((a, b) => a - b); zs.sort((a, b) => a - b);
-  const nx = xs.length, nz = zs.length, pos = new Float32Array(nx * nz * 3), col = new Float32Array(nx * nz * 3), uv = new Float32Array(nx * nz * 2);
-  const c = new THREE.Color();
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
-    const x = xs[i], z = zs[j], y = landAt(x, z), k = j * nx + i;
-    pos.set([x, y, z], k * 3); uv.set([x, z], k * 2);
-    const r = Math.hypot(x - 12, z + 2), dry = sstep(26, 150, r) * (0.45 + 0.7 * fbm(x * 0.02 + 9, z * 0.02));
-    const patch = fbm(x * 0.055, z * 0.055), micro = fbm(x * 0.22 + 4.1, z * 0.22 - 2.7);
-    const v = 0.86 + 0.12 * dry - 0.13 * patch + 0.05 * (micro - 0.5);
-    c.setRGB(v, v, v * 1.015);
-    col.set([c.r, c.g, c.b], k * 3);
-  }
-  const idx = [];
-  for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, d = a + nx, e = d + 1; idx.push(a, d, b, b, d, e); }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-  g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, R.land); m.receiveShadow = true; m.castShadow = false; // the slope faces the sun: nothing on it shades itself
-  return m;
-}
 
 // ---------------------------------------------------------------- textures and materials
 function makeTextures() {
@@ -147,6 +83,42 @@ function makeTextures() {
     grain(g, s, s, 9);
   }, { tile: 3.6 });
 
+  // Cedar boards, 12 cm wide with a shadow gap, each its own tone. On a wall they stand upright (u runs along the wall),
+  // on the terrace they lie across the way out of the house.
+  T.clad = canvasTex(1024, 1024, (g, s) => {
+    const n = 20, w = s / n;
+    for (let i = 0; i < n; i++) {
+      const v = trnd(), hue = 29 + trnd() * 7;
+      g.fillStyle = `hsl(${hue},${27 + trnd() * 9}%,${50 + v * 11}%)`;
+      g.fillRect(i * w, 0, w, s);
+      for (let k = 0; k < 26; k++) {
+        const x = i * w + 3 + trnd() * (w - 6), y = trnd() * s, len = s * (0.12 + trnd() * 0.5);
+        g.fillStyle = trnd() < 0.62 ? `rgba(78,44,20,${0.05 + trnd() * 0.10})` : `rgba(255,226,186,${0.04 + trnd() * 0.07})`;
+        g.fillRect(x, y, 0.8 + trnd() * 1.6, len); if (y + len > s) g.fillRect(x, 0, 0.8 + trnd() * 1.6, y + len - s);
+      }
+      if (trnd() < 0.35) { const kx = i * w + w * (0.3 + trnd() * 0.4), ky = trnd() * s; g.fillStyle = 'rgba(70,38,16,0.34)'; g.beginPath(); g.ellipse(kx, ky, 3.2, 5.5, 0, 0, 7); g.fill(); }
+      g.fillStyle = 'rgba(24,12,6,0.86)'; g.fillRect(i * w, 0, 3.4, s);            // the gap
+      g.fillStyle = 'rgba(255,232,200,0.16)'; g.fillRect(i * w + 3.4, 0, 1.6, s);  // the lit arris next to it
+      g.fillStyle = 'rgba(40,20,8,0.16)'; g.fillRect((i + 1) * w - 2.2, 0, 2.2, s);
+    }
+    grain(g, s, s, 8);
+  }, { tile: 2.4 });
+  // The same boards as a height map: board faces high, gaps low
+  T.cladB = canvasTex(1024, 16, (g, w, h) => {
+    const n = 20, bw = w / n;
+    g.fillStyle = '#c8c8c8'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) { g.fillStyle = '#000'; g.fillRect(i * bw, 0, 3.4, h); g.fillStyle = '#8a8a8a'; g.fillRect(i * bw + 3.4, 0, 2, h); g.fillRect((i + 1) * bw - 2, 0, 2, h); }
+  }, { tile: 2.4, srgb: false });
+  // Solar panels: cells with their busbars, seen from far enough that they read as one dark sheet with a fine grid
+  T.pv = canvasTex(512, 512, (g, s) => {
+    g.fillStyle = '#0d1420'; g.fillRect(0, 0, s, s);
+    const n = 4, c = s / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      g.fillStyle = `hsl(218,${34 + trnd() * 10}%,${12 + trnd() * 4}%)`; g.fillRect(i * c + 3, j * c + 3, c - 6, c - 6);
+      g.fillStyle = 'rgba(190,205,225,0.22)'; for (const b of [0.25, 0.5, 0.75]) g.fillRect(i * c + 3, j * c + c * b, c - 6, 1.2);
+    }
+  }, { tile: 0.66 });
+
   // One slab of black-stained oak for the study desk
   T.deskOak = canvasTex(1024, 512, (g, w, h) => {
     g.fillStyle = '#c4a374'; g.fillRect(0, 0, w, h);
@@ -162,21 +134,6 @@ function makeTextures() {
     }
     grain(g, w, h, 7);
   }, { tile: 2.2 });
-
-  // Lawn, in greys (blended at two scales in the shader)
-  T.grass = canvasTex(1024, 1024, (g, s) => {
-    g.fillStyle = '#92ad5f'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 90, 'rgba(176,196,130,0.16)', 24, 110);
-    blotches(g, s, 90, 'rgba(60,84,40,0.17)', 22, 100);
-    blotches(g, s, 60, 'rgba(150,150,86,0.12)', 16, 70);
-    for (let i = 0; i < 28000; i++) {
-      const r = trnd();
-      g.fillStyle = r < 0.45 ? 'rgba(52,76,34,0.24)' : r < 0.82 ? 'rgba(186,206,138,0.19)' : 'rgba(128,140,74,0.22)';
-      const x = trnd() * s, y = trnd() * s;
-      g.fillRect(x, y, 1 + (r > 0.85 ? 0.6 : 0), 2.2 + trnd() * 3.2);
-    }
-    grain(g, s, s, 10);
-  }, { tile: 6.5 });
 
   // Honed limestone / travertine terrace slabs in running ashlar bond (replaces 2x4 checkerboard)
   T.pave = canvasTex(1024, 1024, (g, s) => {
@@ -240,39 +197,6 @@ function makeTextures() {
   return T;
 }
 
-// Patch terrain material with dual-scale rotated world UV sampling + procedural hillside macro/micro modulation
-function patchLand(mat) {
-  mat.onBeforeCompile = (s) => {
-    s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vLandPos;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLandPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>
-        varying vec3 vLandPos;
-        float lHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float lNoise(vec2 p){
-          vec2 i = floor(p), f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          return mix(mix(lHash(i), lHash(i + vec2(1.0, 0.0)), f.x),
-                     mix(lHash(i + vec2(0.0, 1.0)), lHash(i + vec2(1.0, 1.0)), f.x), f.y);
-        }`)
-      .replace('#include <map_fragment>', `{
-        vec2 uvA = vLandPos.xz * 0.16;
-        vec2 uvB = (mat2(0.78, -0.62, 0.62, 0.78) * vLandPos.xz) * 0.058 + vec2(3.7, -1.9);
-        vec4 texA = texture2D(map, uvA);
-        vec4 texB = texture2D(map, uvB);
-        float blend = smoothstep(0.28, 0.72, lNoise(vLandPos.xz * 0.085));
-        vec3 grassCol = mix(texA.rgb, texB.rgb, blend);
-        float meadow = lNoise(vLandPos.xz * 0.025) * 0.6 + lNoise(vLandPos.xz * 0.11) * 0.4;
-        float blades = (lNoise(vLandPos.xz * 3.4) - 0.5) * 0.09;
-        grassCol *= mix(vec3(0.88), vec3(1.08), meadow) + blades;
-        diffuseColor.rgb *= grassCol;
-      }`);
-  };
-  mat.customProgramCacheKey = () => 'land-dual-scale';
-  return mat;
-}
-
 // Patch foliage materials with subtle per-leaf tonal variation, crown AO from vertex color, and warm sunlit subsurface scatter
 function patchFoliage(mat, sssTint = [0.12, 0.12, 0.13]) {
   mat.vertexColors = true;
@@ -310,6 +234,11 @@ export function realMaterials(env) {
     desk: std({ map: T.deskOak, bumpMap: T.deskOak, bumpScale: 0.004, roughness: 0.36, envMapIntensity: 0.65 }),
     gravel: std({ color: 0xa59f92, roughness: 0.98 }),
     pave: std({ map: T.pave, bumpMap: T.pave, bumpScale: 0.008, roughness: 0.78 }),
+    clad: std({ map: T.clad, bumpMap: T.cladB, bumpScale: 0.03, roughness: 0.72, envMapIntensity: 0.3 }),
+    deck: std({ map: T.clad, bumpMap: T.cladB, bumpScale: 0.02, color: 0xb9b0a4, roughness: 0.7, envMapIntensity: 0.3 }),
+    soffit: std({ map: T.oak, bumpMap: T.oak, bumpScale: 0.004, color: 0xf0d2a8, roughness: 0.6, envMapIntensity: 0.3, emissive: 0xffc890, emissiveMap: T.oak, emissiveIntensity: 0.34 }), // lit by its own downlights
+    pv: std({ map: T.pv, roughness: 0.16, metalness: 0.35, envMapIntensity: 1.1 }),
+    glow: new THREE.MeshStandardMaterial({ color: 0xfff1dc, emissive: 0xffc98a, emissiveIntensity: 3.2, roughness: 0.6 }),
     steel: std({ color: 0x4c4239, metalness: 0.68, roughness: 0.36, envMapIntensity: 0.85 }),
     red: std({ color: 0x4c4239, metalness: 0.2, roughness: 0.34, envMapIntensity: 0.8 }),
     glass: new THREE.MeshPhysicalMaterial({
@@ -339,7 +268,6 @@ export function realMaterials(env) {
     leafDark: patchFoliage(std({ color: 0x65744f, roughness: 0.82, envMapIntensity: 0.18 }), [0.08, 0.08, 0.03]),
     maple: patchFoliage(std({ color: 0xc79a31, roughness: 0.72, envMapIntensity: 0.22 }), [0.26, 0.18, 0.03]),
     bark: std({ map: T.bark, bumpMap: T.bark, bumpScale: 0.015, roughness: 0.92 }),
-    land: patchLand(std({ map: T.grass, vertexColors: true, roughness: 0.96, envMapIntensity: 0.25 })),
     redC: std({ color: 0x70856a, roughness: 0.86 }),
     greyC: std({ color: 0xbcb8af, roughness: 0.86 }),
     coalC: std({ color: 0x4c4239, roughness: 0.86 }),
@@ -380,7 +308,7 @@ export function realHouse(R) {
       const f = boxGeo(b);
       if (p.k === 'glass') { push('glass', f); continue; }
       const spec = typeof p.m === 'string' ? { all: p.m } : p.m;
-      const keys = [spec.all, spec.all, spec.top || spec.all, spec.bot || spec.all, spec.all, spec.all];
+      const keys = [spec.px || spec.all, spec.nx || spec.all, spec.top || spec.all, spec.bot || spec.all, spec.pz || spec.all, spec.nz || spec.all]; // +x, -x, +y, -y, +z, -z
       for (let i = 0; i < 6; i++) {
         const face = new THREE.BufferGeometry();
         for (const a of ['position', 'normal', 'uv']) { const src = f.attributes[a]; face.setAttribute(a, new THREE.BufferAttribute(src.array.slice(i * 6 * src.itemSize, (i + 1) * 6 * src.itemSize), src.itemSize)); }
@@ -392,7 +320,7 @@ export function realHouse(R) {
   for (const [key, list] of buckets) {
     if (!R[key]) console.warn('no material', key);
     const m = new THREE.Mesh(mergeGeometries(list), R[key] || R.conc);
-    m.castShadow = key !== 'glass'; m.receiveShadow = true;
+    m.castShadow = key !== 'glass' && key !== 'glow'; m.receiveShadow = key !== 'glow';
     if (key === 'glass') m.renderOrder = 2;
     group.add(m);
   }
@@ -701,7 +629,7 @@ export function staging(R, Mcard) {
   return g;
 }
 
-// ---------------------------------------------------------------- trees and grass tufts
+// ---------------------------------------------------------------- the plants in the rooms
 // Smooth curved tubular branch along a quadratic Bezier curve with natural taper
 function gnarledBranch(p0, p1, p2, r0, r1, segs = 7, radSegs = 7) {
   const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
@@ -797,184 +725,4 @@ export function canopy(clusters, s0, s1, seed = 1) {
     }
   }
   return mergeGeometries(list);
-}
-
-function treeParts(kind, x, y, z, k, out, seed = 1) {
-  const T = (geo, key) => { geo.translate(x, y, z); out[key].push(geo); };
-  if (kind === 'poplar') {
-    // a poplar: a tall, narrow flame built from tiered upward plumes
-    const tiers = [
-      [0, 2.1, 0, 0.56, 1.2, 0.56, Math.round(110 * k)],
-      [0, 3.8, 0, 0.66, 1.5, 0.66, Math.round(140 * k)],
-      [0, 5.5, 0, 0.54, 1.4, 0.54, Math.round(120 * k)],
-      [0, 6.9, 0, 0.34, 1.05, 0.34, Math.round(80 * k)],
-      [0, 7.8, 0, 0.16, 0.6, 0.16, Math.round(40 * k)],
-    ];
-    const c = canopy(tiers, 0.11 / Math.sqrt(k), 0.19 / Math.sqrt(k), seed);
-    T(c, 'leafDark');
-    T(gnarledBranch(V(0, -0.1, 0), V(0.03, 1.3, -0.02), V(0, 3.0, 0), 0.15, 0.07, 6, 7), 'bark');
-    return;
-  }
-  const olive = kind === 'maple'; // (the wide, low crown: here the maple, the only colour in the garden)
-  // a trunk and its boughs
-  const lean = olive ? (rnd() - 0.3) * 0.28 : (rnd() - 0.5) * 0.12;
-  const topX = lean * 1.4, topY = olive ? 1.85 : 2.15, topZ = (rnd() - 0.5) * 0.24;
-  T(gnarledBranch(V(0, -0.12, 0), V(lean * 0.6, topY * 0.52, topZ * 0.5), V(topX, topY, topZ), olive ? 0.23 : 0.21, olive ? 0.12 : 0.13, 7, 8), 'bark');
-
-  const boughs = olive
-    ? [
-        [V(topX, topY - 0.15, topZ), V(topX - 0.45, topY + 0.55, topZ + 0.1), V(-0.65, 2.85, 0.15), 0.095, 0.042],
-        [V(topX, topY - 0.1, topZ), V(topX + 0.5, topY + 0.6, topZ + 0.2), V(0.92, 3.15, 0.32), 0.088, 0.038],
-        [V(topX, topY - 0.08, topZ), V(topX - 0.12, topY + 0.75, topZ - 0.32), V(-0.22, 3.45, -0.45), 0.082, 0.035],
-        [V(topX - 0.3, topY + 0.4, topZ + 0.08), V(-0.85, 2.75, -0.25), V(-1.15, 3.05, -0.38), 0.052, 0.022],
-      ]
-    : [
-        [V(topX, topY - 0.15, topZ), V(topX - 0.4, topY + 0.7, topZ + 0.25), V(-0.6, 3.35, 0.4), 0.095, 0.042],
-        [V(topX, topY - 0.1, topZ), V(topX + 0.42, topY + 0.85, topZ + 0.2), V(0.65, 3.95, 0.32), 0.09, 0.04],
-        [V(topX, topY - 0.12, topZ), V(topX + 0.05, topY + 0.75, topZ - 0.45), V(0.1, 3.55, -0.65), 0.082, 0.036],
-      ];
-  for (const [p0, p1, p2, r0, r1] of boughs) T(gnarledBranch(p0, p1, p2, r0, r1, 6, 6), 'bark');
-
-  const cl = olive
-    ? [
-        [-0.55, 2.95, 0.08, 1.55, 0.78, 1.38, 280],
-        [0.88, 3.3, 0.3, 1.15, 0.66, 1.05, 190],
-        [-0.22, 3.68, -0.42, 1.08, 0.58, 1.02, 160],
-        [-1.1, 3.12, -0.32, 0.78, 0.48, 0.75, 95],
-      ]
-    : [
-        [-0.35, 3.45, 0.2, 1.45, 1.25, 1.38, 280],
-        [0.55, 4.25, 0.28, 1.18, 0.95, 1.12, 210],
-        [0.08, 3.65, -0.48, 1.22, 1.05, 1.15, 180],
-      ];
-  const c = canopy(cl.map((q) => [...q.slice(0, 6), Math.round(q[6] * k)]), (olive ? 0.1 : 0.12) / Math.sqrt(k), (olive ? 0.17 : 0.21) / Math.sqrt(k), seed);
-  T(c, olive ? 'maple' : 'leaf');
-}
-
-// grass tufts on the garden slope and round the trees
-function buildMeadowTufts(outAt) {
-  const bladeBase = new THREE.PlaneGeometry(0.055, 0.38, 1, 3).toNonIndexed();
-  const bp = bladeBase.attributes.position;
-  for (let i = 0; i < bp.count; i++) {
-    const y = bp.getY(i) + 0.19, u = y / 0.38;
-    bp.setXYZ(i, bp.getX(i) * (1 - u * 0.82), y, u * u * 0.11);
-  }
-  bladeBase.computeVertexNormals();
-  const nV = bp.count;
-
-  // place tufts around the foreground slope, scale figure spot, terrace edges, and close tree bases
-  const spots = [];
-  for (let i = 0; i < 165; i++) {
-    const x = 21.6 + rnd() * 19, z = -11 + rnd() * 23;
-    // keep the garden steps and the place where the figure stands clear
-    if (x < STEPS.x0 + STEPS.n * STEPS.run + 2.6 && z > STEPS.z0 - 0.5 && z < STEPS.z1 + 0.5) continue;
-    spots.push([x, z, 0.75 + rnd() * 0.65]);
-  }
-  for (const [ , tx, tz] of treeSpots()) {
-    if (tx > 15 && tx < 42 && Math.abs(tz) < 16) {
-      for (let k = 0; k < 5; k++) {
-        const a = rnd() * Math.PI * 2, rad = 0.25 + rnd() * 0.9;
-        spots.push([tx + Math.cos(a) * rad, tz + Math.sin(a) * rad, 0.8 + rnd() * 0.5]);
-      }
-    }
-  }
-  for (const [tx, tz, sc] of spots) {
-    const ty = landAt(tx, tz);
-    const blades = 5 + Math.floor(rnd() * 4);
-    const useDark = rnd() < 0.45;
-    for (let b = 0; b < blades; b++) {
-      const g = bladeBase.clone();
-      const hSc = sc * (0.7 + rnd() * 0.55);
-      g.scale(sc, hSc, sc);
-      g.rotateX(0.18 + rnd() * 0.35);
-      g.rotateY((b / blades) * Math.PI * 2 + rnd() * 0.4);
-      g.translate(tx + (rnd() - 0.5) * 0.14, ty - 0.03, tz + (rnd() - 0.5) * 0.14);
-      const cols = new Float32Array(nV * 3);
-      const gp = g.attributes.position, gn = g.attributes.normal;
-      for (let v = 0; v < nV; v++) {
-        const u = clamp((gp.getY(v) - ty) / (0.38 * hSc), 0, 1);
-        const ao = 0.52 + 0.52 * u;
-        cols[v * 3] = ao * (0.95 + 0.12 * u);
-        cols[v * 3 + 1] = ao;
-        cols[v * 3 + 2] = ao * (0.85 - 0.08 * u);
-        gn.setXYZ(v, 0, 0.92, 0.38);
-      }
-      g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-      outAt(tx, tz)[useDark ? 'leafDark' : 'leaf'].push(g);
-    }
-  }
-}
-
-// The trees are cut into five groups by where they stand, so the ones behind the camera are not drawn at all:
-// from the living room only the garden to the south and east is in the picture, not the poplars behind the house.
-const chunkOf = (x, z) => (x > 20 ? (z < 0 ? 'en' : 'es') : x < 0 ? (z < -10 ? 'n' : 'w') : z > 3 ? 's' : 'n');
-export function realTrees(R) {
-  const chunks = {};
-  const outAt = (x, z) => (chunks[chunkOf(x, z)] ||= { leafDark: [], leaf: [], maple: [], bark: [] });
-  // the twins of the card trees, where they stood on the model
-  treeSpots().forEach(([kind, x, z], i) => treeParts(kind, x, landAt(x, z), z, 1, outAt(x, z), i + 1));
-  // grass tufts on the slope
-  buildMeadowTufts(outAt);
-  // more poplars behind the house, beyond the edge of the model (still inside the scan)
-  const far = [];
-  for (let i = 0; i < 9; i++) far.push(['poplar', -30 - (i % 3) * 3.2, -38 + i * 4.6 + (rnd() - 0.5)]);
-  for (let i = 0; i < 7; i++) far.push(['poplar', -12 + i * 3.6, -25 - (rnd() * 1.5)]);
-  far.forEach(([kind, x, z], i) => treeParts(kind, x, landAt(x, z), z, 0.38, outAt(x, z), 40 + i));
-  const g = new THREE.Group();
-  for (const c in chunks) for (const key in chunks[c]) {
-    if (!chunks[c][key].length) continue;
-    const m = new THREE.Mesh(mergeGeometries(chunks[c][key]), R[key]); m.castShadow = true; m.receiveShadow = true; m.name = 'trees-' + c + '-' + key; g.add(m);
-  }
-  return g;
-}
-
-// ---------------------------------------------------------------- the sky
-// Seen from the garden and from inside the house once the front has taken the studio away, and in every reflection.
-// Colours are linear and go through the renderer's tone mapping like everything else.
-export const SKY = {
-  sunDir: { value: SUN_DIR },
-  zen: { value: new THREE.Color(0.30, 0.50, 0.82) },   // overhead
-  hor: { value: new THREE.Color(1.05, 0.72, 0.40) },   // the haze at the horizon
-  sun: { value: new THREE.Color(1.75, 1.25, 0.68) },   // the horizon under the sun, and its glow
-  low: { value: new THREE.Color(0.80, 0.68, 0.44) },   // below the horizon, where the land would be
-};
-const SKY_GLSL = `
-  uniform vec3 sunDir, zen, hor, sun, low;
-  vec3 skyColor(vec3 d) {
-    float h = d.y;
-    float sd = max(dot(d, sunDir), 0.), toward = pow(max(dot(normalize(d.xz + 1e-4), normalize(sunDir.xz)), 0.), 2.);
-    vec3 col = mix(mix(hor, sun, toward * 0.6), zen, pow(clamp(h, 0., 1.), 0.46));
-    col = mix(col, low, smoothstep(0.0, -0.10, h));
-    col += sun * (pow(sd, 7.) * 0.22 + pow(sd, 60.) * 0.45);
-    col += sun * 18. * smoothstep(0.99955, 0.9998, sd);
-    return col;
-  }`;
-export function skyDome() {
-  const mat = new THREE.ShaderMaterial({
-    uniforms: SKY,
-    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
-    fragmentShader: `varying vec3 vDir; ${SKY_GLSL}
-      void main(){ gl_FragColor = vec4(skyColor(normalize(vDir)), 1.);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-    side: THREE.BackSide, depthWrite: false, fog: false,
-  });
-  const m = new THREE.Mesh(new THREE.SphereGeometry(3000, 24, 12), mat);
-  m.frustumCulled = false; m.renderOrder = 1; // after everything solid, so it only fills what is left open
-  return m;
-}
-export function skyEnv(renderer) {
-  const s = new THREE.Scene();
-  s.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.ShaderMaterial({
-    uniforms: SKY, side: THREE.BackSide,
-    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
-    fragmentShader: `varying vec3 vDir; ${SKY_GLSL} void main(){ vec3 c = skyColor(normalize(vDir)); gl_FragColor = vec4(min(c, vec3(4.5)), 1.); }`,
-  })));
-  // the ground half of the environment, for the reflections in the glass
-  const gnd = new THREE.Mesh(new THREE.CircleGeometry(49, 32), new THREE.MeshBasicMaterial({ color: SKY.low.value.clone().multiplyScalar(0.45) }));
-  gnd.rotation.x = -Math.PI / 2; gnd.position.y = -5; s.add(gnd);
-  const gen = new THREE.PMREMGenerator(renderer), tex = gen.fromScene(s, 0.025).texture;
-  gen.dispose();
-  return tex;
 }

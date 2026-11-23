@@ -341,7 +341,7 @@ function mesh(geo, mat, { cast = true, receive = true } = {}) {
 export function cardHouse(M) {
   const card = [], acetate = [];
   for (const p of houseParts()) {
-    if (p.k === 'furn' || p.k === 'land' || p.k === 'fit' || p.k === 'doorfit' || p.ph <= 1) continue;
+    if (p.k === 'furn' || p.k === 'land' || p.k === 'skin' || p.k === 'fit' || p.k === 'doorfit' || p.ph <= 1) continue;
     (p.k === 'glass' || p.k === 'doorglass' ? acetate : card).push(cardBox(p.b));
   }
   const g = new THREE.Group();
