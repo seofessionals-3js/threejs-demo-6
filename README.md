@@ -1,4 +1,6 @@
-# three.js Demo 6
+# three.js Demo 1
+
+In der Übersicht und in der durchlaufenden Schau ist das die Nummer 1; das Repository heißt weiter `threejs-demo-6`, damit alle Adressen gültig bleiben. Mit ihr beginnt die Schau.
 
 Ein weißes Kartonmodell eines Hauses am Abend auf der grünen Schneidematte eines Architekten. Scrollen Sie hinunter zur kleinen Maßstabsfigur, und der Karton wird zum echten Haus, beleuchtet von der Schreibtischlampe als Sonne. Gehen Sie durch die große Glastür hinein und hinauf auf die Galerie ins Arbeitszimmer, wo dasselbe Modell auf dem Tisch steht. Dann wieder hinaus, und die Lampe klickt aus.
 
